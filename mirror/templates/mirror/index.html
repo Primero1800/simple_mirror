@@ -106,6 +106,25 @@
       display: none;
     }
 
+    /* Snap flash */
+    #snap-flash {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    #snap-flash.flash {
+      animation: do-flash 0.35s ease-out forwards;
+    }
+
+    @keyframes do-flash {
+      0%   { opacity: 0.65; }
+      100% { opacity: 0; }
+    }
+
     /* Controls */
     #controls {
       position: fixed;
@@ -114,7 +133,7 @@
       transform: translateX(-50%);
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
       z-index: 50;
     }
 
@@ -124,12 +143,13 @@
       color: #d0d0d0;
       font-size: 0.9rem;
       letter-spacing: 0.04em;
-      padding: 9px 24px;
+      padding: 9px 20px;
       border-radius: 999px;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s, color 0.15s;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
+      white-space: nowrap;
     }
 
     .ctrl-btn:hover:not(:disabled) {
@@ -141,6 +161,13 @@
     .ctrl-btn:disabled {
       opacity: 0.28;
       cursor: default;
+    }
+
+    .ctrl-divider {
+      width: 1px;
+      height: 22px;
+      background: rgba(255, 255, 255, 0.12);
+      flex-shrink: 0;
     }
 
     #rec-dot {
@@ -189,7 +216,12 @@
   </div>
 </div>
 
+<div id="snap-flash"></div>
+
 <div id="controls">
+  <button class="ctrl-btn" id="btn-snap">&#128247; Снимок</button>
+  <button class="ctrl-btn" id="btn-circle">&#9689; Кружок</button>
+  <div class="ctrl-divider"></div>
   <button class="ctrl-btn" id="btn-record">&#9210; Запись</button>
   <span id="rec-dot"></span>
   <button class="ctrl-btn" id="btn-stop" disabled>&#9209; Стоп</button>
@@ -199,9 +231,9 @@
 (function () {
   'use strict';
 
-  var BAR_COUNT  = 16;
-  var BAR_GAP    = 4;
-  var BAR_WIDTH  = 18;
+  var BAR_COUNT    = 16;
+  var BAR_GAP      = 4;
+  var BAR_WIDTH    = 18;
   var CANVAS_WIDTH = BAR_COUNT * BAR_WIDTH + (BAR_COUNT - 1) * BAR_GAP;
 
   function getBarColor(ratio) {
@@ -225,9 +257,9 @@
       for (var j = 0; j < step; j++) {
         sum += dataArray[i * step + j];
       }
-      var avg           = sum / step;
+      var avg            = sum / step;
       var barHeightRatio = avg / maxVal;
-      var barHeight     = Math.max(2, barHeightRatio * height);
+      var barHeight      = Math.max(2, barHeightRatio * height);
 
       var x;
       if (mirror) {
@@ -243,8 +275,8 @@
       ctx.fillStyle   = getBarColor(barHeightRatio);
       ctx.fillRect(x, y, BAR_WIDTH, barHeight);
 
-      ctx.shadowBlur  = 0;
-      ctx.fillStyle   = 'rgba(255,255,255,0.04)';
+      ctx.shadowBlur = 0;
+      ctx.fillStyle  = 'rgba(255,255,255,0.04)';
       ctx.fillRect(x, 0, BAR_WIDTH, y);
     }
   }
@@ -252,7 +284,7 @@
   function resizeCanvases() {
     var vh = window.innerHeight;
     ['eq-left', 'eq-right'].forEach(function (id) {
-      var canvas  = document.getElementById(id);
+      var canvas    = document.getElementById(id);
       canvas.width  = CANVAS_WIDTH;
       canvas.height = vh;
     });
@@ -308,7 +340,86 @@
     }
     animate();
 
-    // ── recording ────────────────────────────────────────────────────────────
+    // ── helpers ──────────────────────────────────────────────────────────────
+    var snapFlash = document.getElementById('snap-flash');
+
+    function flash() {
+      snapFlash.classList.remove('flash');
+      void snapFlash.offsetWidth; // reflow to restart animation
+      snapFlash.classList.add('flash');
+    }
+
+    function ts() {
+      return new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    }
+
+    function downloadCanvas(canvas, filename) {
+      canvas.toBlob(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a   = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+      }, 'image/png');
+    }
+
+    // ── snapshot ─────────────────────────────────────────────────────────────
+    document.getElementById('btn-snap').addEventListener('click', function () {
+      var w = video.videoWidth;
+      var h = video.videoHeight;
+      if (!w || !h) { return; }
+
+      var canvas    = document.createElement('canvas');
+      canvas.width  = w;
+      canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, w, h);
+
+      flash();
+      downloadCanvas(canvas, 'mirror-snap-' + ts() + '.png');
+    });
+
+    // ── circle snapshot ───────────────────────────────────────────────────────
+    document.getElementById('btn-circle').addEventListener('click', function () {
+      var w = video.videoWidth;
+      var h = video.videoHeight;
+      if (!w || !h) { return; }
+
+      var size      = Math.min(w, h);
+      var canvas    = document.createElement('canvas');
+      canvas.width  = size;
+      canvas.height = size;
+      var ctx = canvas.getContext('2d');
+
+      // Circular clip
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.clip();
+
+      // Mirror + brightness boost + centre-crop to square
+      ctx.save();
+      ctx.filter = 'brightness(1.4) saturate(0.85)';
+      ctx.translate(size, 0);
+      ctx.scale(-1, 1);
+      var sx = (w - size) / 2;
+      var sy = (h - size) / 2;
+      ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+      ctx.restore();
+
+      // Slight white veil for the "softened" look
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.fillRect(0, 0, size, size);
+
+      flash();
+      downloadCanvas(canvas, 'mirror-circle-' + ts() + '.png');
+    });
+
+    // ── recording ─────────────────────────────────────────────────────────────
     var btnRecord = document.getElementById('btn-record');
     var btnStop   = document.getElementById('btn-stop');
     var recDot    = document.getElementById('rec-dot');
@@ -317,7 +428,6 @@
 
     btnRecord.addEventListener('click', function () {
       chunks = [];
-
       var mimeType = ['video/webm;codecs=vp9,opus', 'video/webm', ''].find(function (t) {
         return t === '' || MediaRecorder.isTypeSupported(t);
       });
@@ -331,9 +441,8 @@
         var blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
         var url  = URL.createObjectURL(blob);
         var a    = document.createElement('a');
-        var ts   = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
         a.href     = url;
-        a.download = 'mirror-' + ts + '.webm';
+        a.download = 'mirror-rec-' + ts() + '.webm';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
