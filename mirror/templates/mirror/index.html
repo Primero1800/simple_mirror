@@ -105,6 +105,64 @@
     #loading.hidden {
       display: none;
     }
+
+    /* Controls */
+    #controls {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      z-index: 50;
+    }
+
+    .ctrl-btn {
+      background: rgba(15, 15, 15, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #d0d0d0;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
+      padding: 9px 24px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .ctrl-btn:hover:not(:disabled) {
+      background: rgba(38, 38, 38, 0.92);
+      border-color: rgba(255, 255, 255, 0.35);
+      color: #fff;
+    }
+
+    .ctrl-btn:disabled {
+      opacity: 0.28;
+      cursor: default;
+    }
+
+    #rec-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ff3333;
+      box-shadow: 0 0 7px #ff3333;
+      opacity: 0;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    #rec-dot.active {
+      opacity: 1;
+      animation: blink-dot 1s ease-in-out infinite;
+    }
+
+    @keyframes blink-dot {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.1; }
+    }
   </style>
 </head>
 <body>
@@ -131,82 +189,71 @@
   </div>
 </div>
 
+<div id="controls">
+  <button class="ctrl-btn" id="btn-record">&#9210; Запись</button>
+  <span id="rec-dot"></span>
+  <button class="ctrl-btn" id="btn-stop" disabled>&#9209; Стоп</button>
+</div>
+
 <script>
 (function () {
   'use strict';
 
-  const BAR_COUNT = 16;
-  const BAR_GAP = 4;
-  const BAR_WIDTH = 18;
-  const CANVAS_WIDTH = BAR_COUNT * BAR_WIDTH + (BAR_COUNT - 1) * BAR_GAP;
-
-  // Color stops: bottom (low freq) → top (high freq)
-  // Gradient goes red (loud/high) → yellow → green (quiet/low)
-  // We'll draw bars bottom-up, so low index = low frequency = bottom of canvas.
+  var BAR_COUNT  = 16;
+  var BAR_GAP    = 4;
+  var BAR_WIDTH  = 18;
+  var CANVAS_WIDTH = BAR_COUNT * BAR_WIDTH + (BAR_COUNT - 1) * BAR_GAP;
 
   function getBarColor(ratio) {
-    // ratio: 0 (bottom/quiet) → 1 (top/loud)
-    // green → yellow → red
     if (ratio < 0.5) {
-      // green to yellow
-      const t = ratio / 0.5;
-      const r = Math.round(t * 255);
-      const g = 255;
-      return `rgb(${r}, ${g}, 80)`;
+      var t = ratio / 0.5;
+      return 'rgb(' + Math.round(t * 255) + ', 255, 80)';
     } else {
-      // yellow to red
-      const t = (ratio - 0.5) / 0.5;
-      const r = 255;
-      const g = Math.round((1 - t) * 255);
-      return `rgb(${r}, ${g}, 80)`;
+      var t2 = (ratio - 0.5) / 0.5;
+      return 'rgb(255, ' + Math.round((1 - t2) * 255) + ', 80)';
     }
   }
 
   function drawEqualizer(ctx, dataArray, width, height, mirror) {
     ctx.clearRect(0, 0, width, height);
 
-    const step = Math.floor(dataArray.length / BAR_COUNT);
-    const maxVal = 255;
+    var step   = Math.floor(dataArray.length / BAR_COUNT);
+    var maxVal = 255;
 
-    for (let i = 0; i < BAR_COUNT; i++) {
-      // Average a small slice of frequency data for this bar
-      let sum = 0;
-      for (let j = 0; j < step; j++) {
+    for (var i = 0; i < BAR_COUNT; i++) {
+      var sum = 0;
+      for (var j = 0; j < step; j++) {
         sum += dataArray[i * step + j];
       }
-      const avg = sum / step;
-      const barHeightRatio = avg / maxVal;
-      const barHeight = Math.max(2, barHeightRatio * height);
+      var avg           = sum / step;
+      var barHeightRatio = avg / maxVal;
+      var barHeight     = Math.max(2, barHeightRatio * height);
 
-      // x position — mirror flips left↔right for the right panel
-      let x;
+      var x;
       if (mirror) {
         x = width - (i + 1) * BAR_WIDTH - i * BAR_GAP;
       } else {
         x = i * (BAR_WIDTH + BAR_GAP);
       }
 
-      const y = height - barHeight;
+      var y = height - barHeight;
 
-      // Neon glow effect
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur  = 12;
       ctx.shadowColor = getBarColor(barHeightRatio);
-
-      ctx.fillStyle = getBarColor(barHeightRatio);
+      ctx.fillStyle   = getBarColor(barHeightRatio);
       ctx.fillRect(x, y, BAR_WIDTH, barHeight);
 
-      // Dim unlit portion
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.shadowBlur  = 0;
+      ctx.fillStyle   = 'rgba(255,255,255,0.04)';
       ctx.fillRect(x, 0, BAR_WIDTH, y);
     }
   }
 
   function resizeCanvases() {
-    const vh = window.innerHeight;
+    var vh = window.innerHeight;
     ['eq-left', 'eq-right'].forEach(function (id) {
-      const canvas = document.getElementById(id);
-      canvas.width = CANVAS_WIDTH;
+      var canvas  = document.getElementById(id);
+      canvas.width  = CANVAS_WIDTH;
       canvas.height = vh;
     });
   }
@@ -215,16 +262,13 @@
     resizeCanvases();
     window.addEventListener('resize', resizeCanvases);
 
-    let stream;
+    var stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     } catch (err) {
       document.getElementById('loading').classList.add('hidden');
-      const errorMsg = document.getElementById('error-msg');
-      const errorText = document.getElementById('error-text');
+      var errorMsg  = document.getElementById('error-msg');
+      var errorText = document.getElementById('error-text');
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         errorText.textContent = 'Camera or microphone access was denied.';
       } else if (err.name === 'NotFoundError') {
@@ -236,43 +280,83 @@
       return;
     }
 
-    // Attach video stream
-    const video = document.getElementById('webcam');
+    var video    = document.getElementById('webcam');
     video.srcObject = stream;
 
-    // Audio context & analyser
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioCtx.createMediaStreamSource(stream);
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
+    var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    var source   = audioCtx.createMediaStreamSource(stream);
+    var analyser = audioCtx.createAnalyser();
+    analyser.fftSize               = 256;
     analyser.smoothingTimeConstant = 0.8;
     source.connect(analyser);
 
-    const bufferLength = analyser.frequencyBinCount; // 128
-    const dataArray = new Uint8Array(bufferLength);
+    var bufferLength = analyser.frequencyBinCount;
+    var dataArray    = new Uint8Array(bufferLength);
 
-    const canvasLeft = document.getElementById('eq-left');
-    const canvasRight = document.getElementById('eq-right');
-    const ctxLeft = canvasLeft.getContext('2d');
-    const ctxRight = canvasRight.getContext('2d');
+    var canvasLeft  = document.getElementById('eq-left');
+    var canvasRight = document.getElementById('eq-right');
+    var ctxLeft     = canvasLeft.getContext('2d');
+    var ctxRight    = canvasRight.getContext('2d');
 
     document.getElementById('loading').classList.add('hidden');
 
     function animate() {
       requestAnimationFrame(animate);
       analyser.getByteFrequencyData(dataArray);
-
-      const w = canvasLeft.width;
-      const h = canvasLeft.height;
-
-      drawEqualizer(ctxLeft, dataArray, w, h, false);
+      drawEqualizer(ctxLeft,  dataArray, canvasLeft.width,  canvasLeft.height,  false);
       drawEqualizer(ctxRight, dataArray, canvasRight.width, canvasRight.height, true);
     }
-
     animate();
+
+    // ── recording ────────────────────────────────────────────────────────────
+    var btnRecord = document.getElementById('btn-record');
+    var btnStop   = document.getElementById('btn-stop');
+    var recDot    = document.getElementById('rec-dot');
+    var recorder  = null;
+    var chunks    = [];
+
+    btnRecord.addEventListener('click', function () {
+      chunks = [];
+
+      var mimeType = ['video/webm;codecs=vp9,opus', 'video/webm', ''].find(function (t) {
+        return t === '' || MediaRecorder.isTypeSupported(t);
+      });
+      recorder = new MediaRecorder(stream, mimeType ? { mimeType: mimeType } : {});
+
+      recorder.ondataavailable = function (e) {
+        if (e.data && e.data.size > 0) { chunks.push(e.data); }
+      };
+
+      recorder.onstop = function () {
+        var blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        var ts   = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        a.href     = url;
+        a.download = 'mirror-' + ts + '.webm';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+
+        btnRecord.disabled = false;
+        btnStop.disabled   = true;
+        recDot.classList.remove('active');
+      };
+
+      recorder.start(250);
+      btnRecord.disabled = true;
+      btnStop.disabled   = false;
+      recDot.classList.add('active');
+    });
+
+    btnStop.addEventListener('click', function () {
+      if (recorder && recorder.state === 'recording') {
+        recorder.stop();
+      }
+    });
   }
 
-  // Start once DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
