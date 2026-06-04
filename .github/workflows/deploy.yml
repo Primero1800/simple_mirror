@@ -1,0 +1,32 @@
+name: Deploy to mirror.primero1800.ru
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: localhost
+          port: 222
+          username: primero18
+          password: ${{ secrets.BEGET_PASSWORD }}
+          proxy_host: primero18.beget.tech
+          proxy_port: 22
+          proxy_username: primero18
+          proxy_password: ${{ secrets.BEGET_PASSWORD }}
+          script: |
+            set -e
+            git config --global --add safe.directory /home/p/primero18/mirror.primero1800.ru
+            cd ~/mirror.primero1800.ru
+            git fetch origin main
+            git reset --hard origin/main
+            source venv/bin/activate
+            pip install -r requirements.txt -q
+            python manage.py collectstatic --noinput
+            touch tmp/restart.txt
+            echo "Deployed to mirror.primero1800.ru"
