@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mirror</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #0a0a0a;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    #app {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      gap: 0;
+    }
+
+    /* Equalizer panels */
+    .eq-panel {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 0 8px;
+    }
+
+    .eq-canvas {
+      display: block;
+      border-radius: 4px;
+    }
+
+    /* Video container */
+    #video-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      min-width: 0;
+    }
+
+    #webcam {
+      display: block;
+      width: 100%;
+      max-height: 100vh;
+      object-fit: cover;
+      transform: scaleX(-1);
+      border-radius: 4px;
+      background: #111;
+    }
+
+    /* Error overlay */
+    #error-msg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.92);
+      color: #ff4444;
+      font-size: 1.2rem;
+      text-align: center;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      z-index: 100;
+    }
+
+    #error-msg.visible {
+      display: flex;
+    }
+
+    #error-msg span {
+      font-size: 3rem;
+    }
+
+    /* Loading overlay */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #0a0a0a;
+      color: #888;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">Requesting permissions&hellip;</div>
+
+<div id="error-msg">
+  <span>&#128247;</span>
+  <p id="error-text">Camera or microphone access was denied.</p>
+  <small>Please allow access in your browser and reload the page.</small>
+</div>
+
+<div id="app">
+  <div class="eq-panel" id="eq-left-panel">
+    <canvas class="eq-canvas" id="eq-left"></canvas>
+  </div>
+
+  <div id="video-wrap">
+    <video id="webcam" autoplay playsinline muted></video>
+  </div>
+
+  <div class="eq-panel" id="eq-right-panel">
+    <canvas class="eq-canvas" id="eq-right"></canvas>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const BAR_COUNT = 16;
+  const BAR_GAP = 4;
+  const BAR_WIDTH = 18;
+  const CANVAS_WIDTH = BAR_COUNT * BAR_WIDTH + (BAR_COUNT - 1) * BAR_GAP;
+
+  // Color stops: bottom (low freq) → top (high freq)
+  // Gradient goes red (loud/high) → yellow → green (quiet/low)
+  // We'll draw bars bottom-up, so low index = low frequency = bottom of canvas.
+
+  function getBarColor(ratio) {
+    // ratio: 0 (bottom/quiet) → 1 (top/loud)
+    // green → yellow → red
+    if (ratio < 0.5) {
+      // green to yellow
+      const t = ratio / 0.5;
+      const r = Math.round(t * 255);
+      const g = 255;
+      return `rgb(${r}, ${g}, 80)`;
+    } else {
+      // yellow to red
+      const t = (ratio - 0.5) / 0.5;
+      const r = 255;
+      const g = Math.round((1 - t) * 255);
+      return `rgb(${r}, ${g}, 80)`;
+    }
+  }
+
+  function drawEqualizer(ctx, dataArray, width, height, mirror) {
+    ctx.clearRect(0, 0, width, height);
+
+    const step = Math.floor(dataArray.length / BAR_COUNT);
+    const maxVal = 255;
+
+    for (let i = 0; i < BAR_COUNT; i++) {
+      // Average a small slice of frequency data for this bar
+      let sum = 0;
+      for (let j = 0; j < step; j++) {
+        sum += dataArray[i * step + j];
+      }
+      const avg = sum / step;
+      const barHeightRatio = avg / maxVal;
+      const barHeight = Math.max(2, barHeightRatio * height);
+
+      // x position — mirror flips left↔right for the right panel
+      let x;
+      if (mirror) {
+        x = width - (i + 1) * BAR_WIDTH - i * BAR_GAP;
+      } else {
+        x = i * (BAR_WIDTH + BAR_GAP);
+      }
+
+      const y = height - barHeight;
+
+      // Neon glow effect
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = getBarColor(barHeightRatio);
+
+      ctx.fillStyle = getBarColor(barHeightRatio);
+      ctx.fillRect(x, y, BAR_WIDTH, barHeight);
+
+      // Dim unlit portion
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(x, 0, BAR_WIDTH, y);
+    }
+  }
+
+  function resizeCanvases() {
+    const vh = window.innerHeight;
+    ['eq-left', 'eq-right'].forEach(function (id) {
+      const canvas = document.getElementById(id);
+      canvas.width = CANVAS_WIDTH;
+      canvas.height = vh;
+    });
+  }
+
+  async function init() {
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+    } catch (err) {
+      document.getElementById('loading').classList.add('hidden');
+      const errorMsg = document.getElementById('error-msg');
+      const errorText = document.getElementById('error-text');
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorText.textContent = 'Camera or microphone access was denied.';
+      } else if (err.name === 'NotFoundError') {
+        errorText.textContent = 'No camera or microphone found.';
+      } else {
+        errorText.textContent = 'Could not access media devices: ' + err.message;
+      }
+      errorMsg.classList.add('visible');
+      return;
+    }
+
+    // Attach video stream
+    const video = document.getElementById('webcam');
+    video.srcObject = stream;
+
+    // Audio context & analyser
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.8;
+    source.connect(analyser);
+
+    const bufferLength = analyser.frequencyBinCount; // 128
+    const dataArray = new Uint8Array(bufferLength);
+
+    const canvasLeft = document.getElementById('eq-left');
+    const canvasRight = document.getElementById('eq-right');
+    const ctxLeft = canvasLeft.getContext('2d');
+    const ctxRight = canvasRight.getContext('2d');
+
+    document.getElementById('loading').classList.add('hidden');
+
+    function animate() {
+      requestAnimationFrame(animate);
+      analyser.getByteFrequencyData(dataArray);
+
+      const w = canvasLeft.width;
+      const h = canvasLeft.height;
+
+      drawEqualizer(ctxLeft, dataArray, w, h, false);
+      drawEqualizer(ctxRight, dataArray, canvasRight.width, canvasRight.height, true);
+    }
+
+    animate();
+  }
+
+  // Start once DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+}());
+</script>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "simple-mirror"
+version = "0.1.0"
+description = "Webcam mirror with equalizer"
+authors = []
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+django = "^4.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+pytest-django = "*"
+ruff = "*"
+django-stubs = {extras = ["compatible-mypy"], version = "*"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "simple_mirror.settings"
+
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "simple_mirror.settings"
+
+[tool.ruff]
+line-length = 88
