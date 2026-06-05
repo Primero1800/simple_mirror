@@ -29,6 +29,7 @@ COPY --from=builder /app/.venv ./.venv
 COPY manage.py ./
 COPY simple_mirror/ ./simple_mirror/
 COPY mirror/ ./mirror/
+COPY accounts/ ./accounts/
 
 EXPOSE 8000
 
