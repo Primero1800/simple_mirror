@@ -17,13 +17,14 @@ pytest-django = "*"
 ruff = "*"
 django-stubs = {extras = ["compatible-mypy"], version = "*"}
 pytest-mock = "^3.15.1"
+testcontainers = {extras = ["postgres"], version = "*"}
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "simple_mirror.settings"
+DJANGO_SETTINGS_MODULE = "simple_mirror.settings_test"
 
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]
