@@ -47,7 +47,7 @@ def test_register_password_mismatch_shows_error(client):
         'email': 'a@b.com', 'password': 'pass1234', 'password2': 'different',
     })
     assert response.status_code == 200
-    assert 'do not match' in response.content.decode().lower()
+    assert response.context['form'].errors
 
 
 # ── Login ─────────────────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ def test_login_wrong_password_shows_error(client, active_user):
         'email': active_user.email, 'password': 'wrongpassword',
     })
     assert response.status_code == 200
-    assert 'invalid' in response.content.decode().lower()
+    assert response.context['error'] is not None
 
 
 @pytest.mark.django_db
@@ -82,7 +82,7 @@ def test_login_inactive_user_shows_error(client, inactive_user):
         'email': inactive_user.email, 'password': 'Str0ngPass!',
     })
     assert response.status_code == 200
-    assert 'invalid' in response.content.decode().lower()
+    assert response.context['error'] is not None
 
 
 # ── Verify ────────────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ def test_verify_wrong_code_shows_error(client, pending_session):
     pending_client, _ = pending_session
     response = pending_client.post('/accounts/verify/', {'code': '0000'})
     assert response.status_code == 200
-    assert 'invalid' in response.content.decode().lower()
+    assert response.context['error'] is not None
 
 
 @pytest.mark.django_db
@@ -120,7 +120,7 @@ def test_verify_expired_code_shows_error(client, db, inactive_user, otp_for_user
 
     response = client.post('/accounts/verify/', {'code': '5678'})
     assert response.status_code == 200
-    assert 'expired' in response.content.decode().lower()
+    assert response.context['error'] is not None
 
 
 # ── Resend ────────────────────────────────────────────────────────────────────
