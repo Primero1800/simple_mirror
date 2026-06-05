@@ -50,8 +50,12 @@ class EmailService:
         retry_delay: float = getattr(settings, 'EMAIL_OTP_RETRY_DELAY', 1.0)
         lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
 
-        subject = 'Your verification code'
-        message = f'Your code: {code}\n\nValid for {lifetime} seconds.'
+        subject = 'Mirror — код подтверждения'
+        message = (
+            f'Ваш код подтверждения: {code}\n\n'
+            f'Код действителен {lifetime} секунд.\n\n'
+            f'Если вы не запрашивали код — просто проигнорируйте это письмо.'
+        )
 
         last_exc: Exception | None = None
         for attempt in range(max_retries):
