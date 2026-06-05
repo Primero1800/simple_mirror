@@ -1,0 +1,255 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-05 08:28-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+#: accounts/forms.py:9 accounts/forms.py:21
+#: accounts/templates/accounts/login.html:19
+#: accounts/templates/accounts/register.html:25
+msgid "Пароль"
+msgstr ""
+
+#: accounts/forms.py:10
+#: accounts/templates/accounts/password_reset_confirm.html:16
+#: accounts/templates/accounts/register.html:29
+msgid "Повторите пароль"
+msgstr ""
+
+#: accounts/forms.py:15
+msgid "Пароли не совпадают"
+msgstr ""
+
+#: accounts/templates/accounts/login.html:3
+msgid "Вход"
+msgstr ""
+
+#: accounts/templates/accounts/login.html:6
+#: accounts/templates/accounts/password_reset_complete.html:10
+#: accounts/templates/accounts/register.html:35
+#: mirror/templates/mirror/index.html:273
+msgid "Войти"
+msgstr ""
+
+#: accounts/templates/accounts/login.html:22
+#: accounts/templates/accounts/register.html:32
+msgid "Продолжить"
+msgstr ""
+
+#: accounts/templates/accounts/login.html:25
+msgid "Нет аккаунта?"
+msgstr ""
+
+#: accounts/templates/accounts/login.html:25
+msgid "Зарегистрироваться"
+msgstr ""
+
+#: accounts/templates/accounts/login.html:26
+#: accounts/templates/accounts/password_reset_form.html:6
+msgid "Забыли пароль?"
+msgstr ""
+
+#: accounts/templates/accounts/login.html:27
+#: accounts/templates/accounts/password_reset_complete.html:13
+#: accounts/templates/accounts/password_reset_confirm.html:36
+#: accounts/templates/accounts/password_reset_done.html:12
+#: accounts/templates/accounts/password_reset_form.html:19
+msgid "Продолжить без входа"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_complete.html:3
+#: accounts/templates/accounts/password_reset_complete.html:6
+msgid "Пароль изменён"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_complete.html:7
+msgid "Теперь можно войти с новым паролем."
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_confirm.html:3
+#: accounts/templates/accounts/password_reset_confirm.html:6
+#: accounts/templates/accounts/password_reset_confirm.html:12
+msgid "Новый пароль"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_confirm.html:12
+#: accounts/templates/accounts/register.html:25
+msgid "минимум 8 символов"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_confirm.html:26
+msgid "Сохранить пароль"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_confirm.html:30
+msgid "Ссылка недействительна или устарела."
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_confirm.html:32
+msgid "Запросить новую ссылку"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_done.html:3
+msgid "Письмо отправлено"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_done.html:6
+msgid "Проверьте почту"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_done.html:8
+msgid ""
+"Если аккаунт с таким email существует, мы отправили ссылку для сброса "
+"пароля. Ссылка действительна 24 часа."
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_done.html:11
+#: accounts/templates/accounts/password_reset_form.html:18
+msgid "Вернуться ко входу"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_email.html:2
+msgid ""
+"Вы получили это письмо, потому что кто-то запросил сброс пароля для вашего "
+"аккаунта на сайте Mirror."
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_email.html:4
+msgid "Перейдите по ссылке, чтобы задать новый пароль:"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_email.html:8
+msgid "Ссылка действительна 24 часа."
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_email.html:10
+msgid "Если вы не запрашивали сброс пароля — просто проигнорируйте это письмо."
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_form.html:3
+msgid "Восстановление пароля"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_form.html:7
+msgid "Введите email — пришлём ссылку для сброса."
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_form.html:15
+msgid "Отправить ссылку"
+msgstr ""
+
+#: accounts/templates/accounts/password_reset_subject.txt:1
+msgid "Mirror — сброс пароля"
+msgstr ""
+
+#: accounts/templates/accounts/register.html:3
+#: mirror/templates/mirror/index.html:275
+msgid "Регистрация"
+msgstr ""
+
+#: accounts/templates/accounts/register.html:6
+msgid "Создать аккаунт"
+msgstr ""
+
+#: accounts/templates/accounts/register.html:35
+msgid "Уже есть аккаунт?"
+msgstr ""
+
+#: accounts/templates/accounts/register.html:36
+msgid "Продолжить без регистрации"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:3
+msgid "Подтверждение"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:6
+msgid "Введите код"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:7
+msgid "Отправили 4-значный код на"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:25
+msgid "Код действителен"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:29
+msgid "Отправить код повторно"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:32
+msgid "Подтвердить"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:101
+msgid "Отправляем…"
+msgstr ""
+
+#: accounts/templates/accounts/verify.html:102
+msgid "Ошибка. Попробуйте ещё раз."
+msgstr ""
+
+#: accounts/views.py:39 accounts/views.py:72
+msgid "Не удалось отправить код. Попробуйте позже."
+msgstr ""
+
+#: accounts/views.py:78
+msgid "Неверный email или пароль"
+msgstr ""
+
+#: accounts/views.py:111
+msgid "Неверный или истёкший код"
+msgstr ""
+
+#: accounts/views.py:141
+msgid "Сессия истекла"
+msgstr ""
+
+#: accounts/views.py:145
+msgid "Пользователь не найден"
+msgstr ""
+
+#: accounts/views.py:150
+msgid "Не удалось отправить код"
+msgstr ""
+
+#: mirror/templates/mirror/index.html:271
+msgid "Выйти"
+msgstr ""
+
+#: mirror/templates/mirror/index.html:279
+msgid "Запрашиваем разрешения"
+msgstr ""
+
+#: mirror/templates/mirror/index.html:304
+msgid "Снимок"
+msgstr ""
+
+#: mirror/templates/mirror/index.html:305
+msgid "Кружок"
+msgstr ""
+
+#: mirror/templates/mirror/index.html:307
+msgid "Запись"
+msgstr ""
+
+#: mirror/templates/mirror/index.html:309
+msgid "Стоп"
+msgstr ""

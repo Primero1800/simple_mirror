@@ -1,12 +1,13 @@
+import threading
+
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.views import PasswordResetView as DjangoPasswordResetView
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, render
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_POST
-
-import threading
 
 from accounts.forms import LoginForm, RegisterForm
 from accounts.services.auth_service import AuthService
@@ -35,7 +36,7 @@ def register(request: HttpRequest) -> HttpResponse:
         except ValueError as exc:
             form.add_error('email', str(exc))
         except RuntimeError:
-            form.add_error(None, 'Could not send verification code. Please try again.')
+            form.add_error(None, str(_('Не удалось отправить код. Попробуйте позже.')))
         else:
             request.session['pending_user_id'] = user.pk
             request.session['otp_purpose'] = 'register'
@@ -68,13 +69,13 @@ def login_view(request: HttpRequest) -> HttpResponse:
                 try:
                     AuthService.send_otp(user)
                 except RuntimeError:
-                    error = 'Could not send verification code. Please try again.'
+                    error = str(_('Не удалось отправить код. Попробуйте позже.'))
                 else:
                     request.session['pending_user_id'] = user.pk
                     request.session['otp_purpose'] = 'login'
                     return redirect('accounts:verify')
             else:
-                error = 'Invalid email or password'
+                error = str(_('Неверный email или пароль'))
     else:
         form = LoginForm()
 
@@ -107,7 +108,7 @@ def verify_otp(request: HttpRequest) -> HttpResponse:
         # 3. Validate the submitted code against the stored OTP record
         code: str = request.POST.get('code', '')
         if not AuthService.verify_otp(user, code):
-            error = 'Invalid or expired code'
+            error = str(_('Неверный или истёкший код'))
         else:
             # 4. Activate account on first registration, then log the user in
             purpose = request.session.pop('otp_purpose', 'login')
@@ -137,16 +138,16 @@ def resend_otp(request: HttpRequest) -> JsonResponse:
     """
     user_id = request.session.get('pending_user_id')
     if not user_id:
-        return JsonResponse({'ok': False, 'error': 'Session expired'})
+        return JsonResponse({'ok': False, 'error': str(_('Сессия истекла'))})
 
     user = AuthService.get_user_by_id(user_id)
     if not user:
-        return JsonResponse({'ok': False, 'error': 'User not found'})
+        return JsonResponse({'ok': False, 'error': str(_('Пользователь не найден'))})
 
     try:
         AuthService.send_otp(user)
     except RuntimeError:
-        return JsonResponse({'ok': False, 'error': 'Could not send code'})
+        return JsonResponse({'ok': False, 'error': str(_('Не удалось отправить код'))})
 
     lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
     return JsonResponse({'ok': True, 'seconds': lifetime})
