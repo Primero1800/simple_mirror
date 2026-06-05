@@ -30,6 +30,7 @@ COPY manage.py ./
 COPY simple_mirror/ ./simple_mirror/
 COPY mirror/ ./mirror/
 COPY accounts/ ./accounts/
+COPY locale/ ./locale/
 
 EXPOSE 8000
 

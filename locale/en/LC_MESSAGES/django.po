@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-05 08:28-0500\n"
+"POT-Creation-Date: 2026-06-05 09:35-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,21 +16,41 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-#: accounts/forms.py:9 accounts/forms.py:21
+
+#: accounts/forms.py:11 accounts/forms.py:33
 #: accounts/templates/accounts/login.html:19
 #: accounts/templates/accounts/register.html:25
 msgid "Пароль"
 msgstr "Password"
 
-#: accounts/forms.py:10
+#: accounts/forms.py:12
 #: accounts/templates/accounts/password_reset_confirm.html:16
 #: accounts/templates/accounts/register.html:29
 msgid "Повторите пароль"
 msgstr "Repeat password"
 
-#: accounts/forms.py:15
+#: accounts/forms.py:25
 msgid "Пароли не совпадают"
 msgstr "Passwords do not match"
+
+#: accounts/services/email_service.py:54
+msgid "Mirror — код подтверждения"
+msgstr "Mirror — verification code"
+
+#: accounts/services/email_service.py:56
+#, python-format
+msgid ""
+"Ваш код подтверждения: %(code)s\n"
+"\n"
+"Код действителен %(lifetime)s секунд.\n"
+"\n"
+"Если вы не запрашивали код — просто проигнорируйте это письмо."
+msgstr ""
+"Your verification code: %(code)s\n"
+"\n"
+"The code is valid for %(lifetime)s seconds.\n"
+"\n"
+"If you did not request this code, simply ignore this email."
 
 #: accounts/templates/accounts/login.html:3
 msgid "Вход"
@@ -114,8 +134,8 @@ msgid ""
 "Если аккаунт с таким email существует, мы отправили ссылку для сброса "
 "пароля. Ссылка действительна 24 часа."
 msgstr ""
-"If an account with that email exists, we sent a password reset link. "
-"The link is valid for 24 hours."
+"If an account with that email exists, we sent a password reset link. The "
+"link is valid for 24 hours."
 
 #: accounts/templates/accounts/password_reset_done.html:11
 #: accounts/templates/accounts/password_reset_form.html:18
@@ -127,8 +147,8 @@ msgid ""
 "Вы получили это письмо, потому что кто-то запросил сброс пароля для вашего "
 "аккаунта на сайте Mirror."
 msgstr ""
-"You received this email because someone requested a password reset "
-"for your Mirror account."
+"You received this email because someone requested a password reset for your "
+"Mirror account."
 
 #: accounts/templates/accounts/password_reset_email.html:4
 msgid "Перейдите по ссылке, чтобы задать новый пароль:"
