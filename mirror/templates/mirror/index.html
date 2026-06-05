@@ -1,5 +1,6 @@
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,6 +46,26 @@
     }
 
     #topbar a:hover { color: #fff; }
+
+    .lang-form {
+      display: flex;
+      gap: 2px;
+      align-items: center;
+    }
+
+    .lang-form button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 2px 3px;
+      opacity: 0.4;
+      transition: opacity 0.15s;
+      line-height: 1;
+    }
+
+    .lang-form button:hover { opacity: 0.9; }
+    .lang-form button.active { opacity: 1; }
 
     #topbar .user-email {
       color: rgba(255,255,255,0.5);
@@ -233,18 +254,29 @@
 <body>
 
 <div id="topbar">
+  <form class="lang-form" action="{% url 'set_language' %}" method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <button type="submit" name="language" value="ru"
+            class="{% if LANGUAGE_CODE == 'ru' %}active{% endif %}"
+            title="Русский">🇷🇺</button>
+    <button type="submit" name="language" value="en"
+            class="{% if LANGUAGE_CODE == 'en' %}active{% endif %}"
+            title="English">🇬🇧</button>
+  </form>
+  <span class="sep">|</span>
   {% if user.is_authenticated %}
     <span class="user-email">{{ user.email }}</span>
     <span class="sep">|</span>
-    <a href="{% url 'accounts:logout' %}">Выйти</a>
+    <a href="{% url 'accounts:logout' %}">{% trans "Выйти" %}</a>
   {% else %}
-    <a href="{% url 'accounts:login' %}">Войти</a>
+    <a href="{% url 'accounts:login' %}">{% trans "Войти" %}</a>
     <span class="sep">|</span>
-    <a href="{% url 'accounts:register' %}">Регистрация</a>
+    <a href="{% url 'accounts:register' %}">{% trans "Регистрация" %}</a>
   {% endif %}
 </div>
 
-<div id="loading">Requesting permissions&hellip;</div>
+<div id="loading">{% trans "Запрашиваем разрешения" %}&hellip;</div>
 
 <div id="error-msg">
   <span>&#128247;</span>
@@ -269,12 +301,12 @@
 <div id="snap-flash"></div>
 
 <div id="controls">
-  <button class="ctrl-btn" id="btn-snap">&#128247; Снимок</button>
-  <button class="ctrl-btn" id="btn-circle">&#9689; Кружок</button>
+  <button class="ctrl-btn" id="btn-snap">&#128247; {% trans "Снимок" %}</button>
+  <button class="ctrl-btn" id="btn-circle">&#9689; {% trans "Кружок" %}</button>
   <div class="ctrl-divider"></div>
-  <button class="ctrl-btn" id="btn-record">&#9210; Запись</button>
+  <button class="ctrl-btn" id="btn-record">&#9210; {% trans "Запись" %}</button>
   <span id="rec-dot"></span>
-  <button class="ctrl-btn" id="btn-stop" disabled>&#9209; Стоп</button>
+  <button class="ctrl-btn" id="btn-stop" disabled>&#9209; {% trans "Стоп" %}</button>
 </div>
 
 <script>

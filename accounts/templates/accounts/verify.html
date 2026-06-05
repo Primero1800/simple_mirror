@@ -1,9 +1,10 @@
 {% extends "accounts/base.html" %}
-{% block title %}Подтверждение{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Подтверждение" %}{% endblock %}
 
 {% block content %}
-<h1>Введите код</h1>
-<p class="hint">Отправили 4-значный код на <strong>{{ email }}</strong></p>
+<h1>{% trans "Введите код" %}</h1>
+<p class="hint">{% trans "Отправили 4-значный код на" %} <strong>{{ email }}</strong></p>
 
 {% if error %}
 <div class="error-box">{{ error }}</div>
@@ -21,14 +22,14 @@
   </div>
 
   <div id="timer-line">
-    Код действителен&nbsp;<span id="timer">1:00</span>
+    {% trans "Код действителен" %}&nbsp;<span id="timer">1:00</span>
   </div>
 
   <p id="resend-line" hidden>
-    <a href="#" id="resend-link">Отправить код повторно</a>
+    <a href="#" id="resend-link">{% trans "Отправить код повторно" %}</a>
   </p>
 
-  <button type="submit" class="btn-primary" id="btn-submit">Подтвердить</button>
+  <button type="submit" class="btn-primary" id="btn-submit">{% trans "Подтвердить" %}</button>
 </form>
 
 <style>
@@ -68,9 +69,7 @@
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
   }
 
-  .otp-box:disabled {
-    opacity: 0.22;
-  }
+  .otp-box:disabled { opacity: 0.22; }
 
   #timer-line {
     text-align: center;
@@ -79,10 +78,7 @@
     margin-bottom: 14px;
   }
 
-  #timer {
-    font-variant-numeric: tabular-nums;
-    color: #888;
-  }
+  #timer { font-variant-numeric: tabular-nums; color: #888; }
 
   #resend-line {
     text-align: center;
@@ -102,6 +98,9 @@
 
 <script>
 (function () {
+  var MSG_SENDING = '{% trans "Отправляем…" %}';
+  var MSG_ERROR   = '{% trans "Ошибка. Попробуйте ещё раз." %}';
+
   var remaining  = {{ seconds_remaining }};
   var boxes      = Array.from(document.querySelectorAll('.otp-box'));
   var hidden     = document.getElementById('otp-hidden');
@@ -172,7 +171,7 @@
 
   resendLink.addEventListener('click', function (e) {
     e.preventDefault();
-    resendLink.textContent = 'Отправляем…';
+    resendLink.textContent = MSG_SENDING;
     resendLink.style.pointerEvents = 'none';
 
     var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
@@ -195,12 +194,12 @@
         clearInterval(timerId);
         timerId = setInterval(tick, 1000);
       } else {
-        resendLink.textContent = data.error || 'Ошибка. Попробуйте ещё раз.';
+        resendLink.textContent = data.error || MSG_ERROR;
         resendLink.style.pointerEvents = 'auto';
       }
     })
     .catch(function () {
-      resendLink.textContent = 'Ошибка. Попробуйте ещё раз.';
+      resendLink.textContent = MSG_ERROR;
       resendLink.style.pointerEvents = 'auto';
     });
   });

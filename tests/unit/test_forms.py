@@ -19,7 +19,7 @@ class TestRegisterForm:
             'password2': 'Different1!',
         })
         assert not form.is_valid()
-        assert 'do not match' in str(form.errors).lower()
+        assert '__all__' in form.errors
 
     def test_password_too_short_fails(self):
         form = RegisterForm(data={

@@ -1,8 +1,9 @@
 {% extends "accounts/base.html" %}
-{% block title %}Регистрация{% endblock %}
+{% load i18n %}
+{% block title %}{% trans "Регистрация" %}{% endblock %}
 
 {% block content %}
-<h1>Создать аккаунт</h1>
+<h1>{% trans "Создать аккаунт" %}</h1>
 
 {% if form.errors %}
 <div class="error-box">
@@ -21,16 +22,16 @@
            autocomplete="email" autofocus required>
   </div>
   <div class="field">
-    <label>Пароль <span style="color:#444;font-size:0.68rem;text-transform:none">(минимум 8 символов)</span></label>
+    <label>{% trans "Пароль" %} <span style="color:#444;font-size:0.68rem;text-transform:none">({% trans "минимум 8 символов" %})</span></label>
     <input type="password" name="password" autocomplete="new-password" required>
   </div>
   <div class="field">
-    <label>Повторите пароль</label>
+    <label>{% trans "Повторите пароль" %}</label>
     <input type="password" name="password2" autocomplete="new-password" required>
   </div>
-  <button type="submit" class="btn-primary">Продолжить →</button>
+  <button type="submit" class="btn-primary">{% trans "Продолжить" %} →</button>
 </form>
 
-<p class="alt-link">Уже есть аккаунт? <a href="{% url 'accounts:login' %}">Войти</a></p>
-<p class="alt-link"><a href="{% url 'mirror:index' %}">Продолжить без регистрации →</a></p>
+<p class="alt-link">{% trans "Уже есть аккаунт?" %} <a href="{% url 'accounts:login' %}">{% trans "Войти" %}</a></p>
+<p class="alt-link"><a href="{% url 'mirror:index' %}">{% trans "Продолжить без регистрации" %} →</a></p>
 {% endblock %}
