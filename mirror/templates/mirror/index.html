@@ -51,6 +51,9 @@
       display: flex;
       gap: 2px;
       align-items: center;
+      width: 56px;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
     .lang-form button {
@@ -59,24 +62,48 @@
       cursor: pointer;
       font-size: 1.1rem;
       padding: 2px 3px;
+      width: 24px;
+      text-align: center;
       opacity: 0.4;
       transition: opacity 0.15s;
       line-height: 1;
+      will-change: opacity;
     }
 
     .lang-form button:hover { opacity: 0.9; }
     .lang-form button.active { opacity: 1; }
 
+    .topbar-auth {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
     #topbar .user-email {
       color: rgba(255,255,255,0.5);
       font-size: 0.8rem;
       letter-spacing: 0.03em;
+      max-width: 50ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     #topbar .sep {
       color: rgba(255,255,255,0.2);
       font-size: 0.75rem;
     }
+
+    /* Fixed widths based on longest translation per link */
+    .topbar-auth a {
+      display: inline-block;
+      text-align: center;
+    }
+
+    .link-login   { width: 52px; }   /* Sign In / Войти */
+    .link-logout  { width: 64px; }   /* Sign Out > Выйти */
+    .link-register { width: 88px; }  /* Регистрация > Sign Up */
 
     #app {
       display: flex;
@@ -265,15 +292,17 @@
             title="English">🇬🇧</button>
   </form>
   <span class="sep">|</span>
-  {% if user.is_authenticated %}
-    <span class="user-email">{{ user.email }}</span>
-    <span class="sep">|</span>
-    <a href="{% url 'accounts:logout' %}">{% trans "Выйти" %}</a>
-  {% else %}
-    <a href="{% url 'accounts:login' %}">{% trans "Войти" %}</a>
-    <span class="sep">|</span>
-    <a href="{% url 'accounts:register' %}">{% trans "Регистрация" %}</a>
-  {% endif %}
+  <div class="topbar-auth">
+    {% if user.is_authenticated %}
+      <span class="user-email" title="{{ user.email }}">{{ user.email }}</span>
+      <span class="sep">|</span>
+      <a href="{% url 'accounts:logout' %}" class="link-logout">{% trans "Выйти" %}</a>
+    {% else %}
+      <a href="{% url 'accounts:login' %}" class="link-login">{% trans "Войти" %}</a>
+      <span class="sep">|</span>
+      <a href="{% url 'accounts:register' %}" class="link-register">{% trans "Регистрация" %}</a>
+    {% endif %}
+  </div>
 </div>
 
 <div id="loading">{% trans "Запрашиваем разрешения" %}&hellip;</div>

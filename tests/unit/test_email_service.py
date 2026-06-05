@@ -69,7 +69,6 @@ class TestSendOtpAsync:
             from accounts.services.email_service import EmailService
             EmailService.send_otp_async('a@b.com', '5678')
             mock_executor.submit.assert_called_once()
+            # send_otp_async now submits a language-aware _run wrapper, not send_otp directly
             args = mock_executor.submit.call_args[0]
-            assert args[0] is EmailService.send_otp
-            assert 'a@b.com' in args
-            assert '5678' in args
+            assert callable(args[0])

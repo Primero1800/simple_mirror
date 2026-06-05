@@ -6,7 +6,7 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.views import PasswordResetView as DjangoPasswordResetView
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, render
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import get_language, activate, gettext_lazy as _
 from django.views.decorators.http import require_POST
 
 from accounts.forms import LoginForm, RegisterForm
@@ -180,5 +180,11 @@ class AsyncPasswordResetView(DjangoPasswordResetView):
             'html_email_template_name': self.html_email_template_name,
             'extra_email_context': self.extra_email_context,
         }
-        threading.Thread(target=form.save, kwargs=opts, daemon=True).start()
+        lang = get_language() or 'ru'
+
+        def _run() -> None:
+            activate(lang)
+            form.save(**opts)
+
+        threading.Thread(target=_run, daemon=True).start()
         return HttpResponseRedirect(self.get_success_url())

@@ -50,12 +50,13 @@ class EmailService:
         retry_delay: float = getattr(settings, 'EMAIL_OTP_RETRY_DELAY', 1.0)
         lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
 
-        subject = 'Mirror — код подтверждения'
-        message = (
-            f'Ваш код подтверждения: {code}\n\n'
-            f'Код действителен {lifetime} секунд.\n\n'
-            f'Если вы не запрашивали код — просто проигнорируйте это письмо.'
-        )
+        from django.utils.translation import gettext as _
+        subject = _('Mirror — код подтверждения')
+        message = _(
+            'Ваш код подтверждения: %(code)s\n\n'
+            'Код действителен %(lifetime)s секунд.\n\n'
+            'Если вы не запрашивали код — просто проигнорируйте это письмо.'
+        ) % {'code': code, 'lifetime': lifetime}
 
         last_exc: Exception | None = None
         for attempt in range(max_retries):
@@ -85,10 +86,19 @@ class EmailService:
     def send_otp_async(email: str, code: str) -> None:
         """Submit *send_otp* to the thread-pool (fire-and-forget).
 
-        The request is not blocked; delivery errors are logged by the worker.
+        Captures the active language from the request thread and activates it
+        in the worker thread so translated subject/body are used.
 
         Args:
             email: Recipient address.
             code: 4-digit OTP string.
         """
-        _get_executor().submit(EmailService.send_otp, email, code)
+        from django.utils.translation import get_language, activate
+
+        lang = get_language() or 'ru'
+
+        def _run() -> None:
+            activate(lang)
+            EmailService.send_otp(email, code)
+
+        _get_executor().submit(_run)

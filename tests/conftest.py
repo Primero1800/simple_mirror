@@ -2,6 +2,7 @@
 import threading
 import pytest
 from datetime import datetime, timedelta
+from django.utils.translation import activate
 from testcontainers.postgres import PostgresContainer
 
 
@@ -49,6 +50,12 @@ def django_db_setup(django_test_environment, django_db_blocker):
             from django.core.management import call_command
             call_command('migrate', verbosity=0)
         yield
+
+
+@pytest.fixture(autouse=True)
+def set_language_ru():
+    """Activate Russian for every test so reverse() returns /ru/... URLs."""
+    activate('ru')
 
 
 @pytest.fixture(autouse=True)
