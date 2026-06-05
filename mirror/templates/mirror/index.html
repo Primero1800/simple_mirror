@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mirror</title>
+  <link rel="icon" href="data:,">
   <style>
     *, *::before, *::after {
       box-sizing: border-box;
@@ -17,6 +18,43 @@
       background-color: #0a0a0a;
       overflow: hidden;
       font-family: sans-serif;
+    }
+
+    /* Header */
+    #topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 20px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%);
+      z-index: 60;
+      gap: 16px;
+    }
+
+    #topbar a {
+      color: rgba(255,255,255,0.65);
+      font-size: 0.8rem;
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      transition: color 0.15s;
+    }
+
+    #topbar a:hover { color: #fff; }
+
+    #topbar .user-email {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.8rem;
+      letter-spacing: 0.03em;
+    }
+
+    #topbar .sep {
+      color: rgba(255,255,255,0.2);
+      font-size: 0.75rem;
     }
 
     #app {
@@ -193,6 +231,18 @@
   </style>
 </head>
 <body>
+
+<div id="topbar">
+  {% if user.is_authenticated %}
+    <span class="user-email">{{ user.email }}</span>
+    <span class="sep">|</span>
+    <a href="{% url 'accounts:logout' %}">Выйти</a>
+  {% else %}
+    <a href="{% url 'accounts:login' %}">Войти</a>
+    <span class="sep">|</span>
+    <a href="{% url 'accounts:register' %}">Регистрация</a>
+  {% endif %}
+</div>
 
 <div id="loading">Requesting permissions&hellip;</div>
 

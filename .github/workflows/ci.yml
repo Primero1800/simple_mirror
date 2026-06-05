@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: poetry install
       - name: Type check
-        run: poetry run mypy mirror/ simple_mirror/
+        run: poetry run mypy mirror/ simple_mirror/ accounts/
 
   test:
     runs-on: ubuntu-latest

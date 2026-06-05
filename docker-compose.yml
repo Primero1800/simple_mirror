@@ -1,6 +1,36 @@
 services:
+
+  db:
+    image: postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    expose:
+      - "${POSTGRES_PORT}"
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    command: -p ${POSTGRES_PORT}
+    networks:
+      - mirror_network
+
   web:
-    build: .
+    restart: unless-stopped
+    build:
+      context: ./
     ports:
       - "8000:8000"
-    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - db
+    command: ["sh", "-c", "python manage.py migrate --no-input && python manage.py runserver 0.0.0.0:8000"]
+    networks:
+      - mirror_network
+
+volumes:
+  postgres_data:
+
+networks:
+  mirror_network:

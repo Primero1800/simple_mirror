@@ -1,0 +1,36 @@
+{% extends "accounts/base.html" %}
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<h1>Создать аккаунт</h1>
+
+{% if form.errors %}
+<div class="error-box">
+  {% for field, errors in form.errors.items %}
+    {% for e in errors %}{{ e }}<br>{% endfor %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="field">
+    <label>Email</label>
+    <input type="email" name="email"
+           value="{{ form.email.value|default:'' }}"
+           autocomplete="email" autofocus required>
+  </div>
+  <div class="field">
+    <label>Пароль <span style="color:#444;font-size:0.68rem;text-transform:none">(минимум 8 символов)</span></label>
+    <input type="password" name="password" autocomplete="new-password" required>
+  </div>
+  <div class="field">
+    <label>Повторите пароль</label>
+    <input type="password" name="password2" autocomplete="new-password" required>
+  </div>
+  <button type="submit" class="btn-primary">Продолжить →</button>
+</form>
+
+<p class="alt-link">Уже есть аккаунт? <a href="{% url 'accounts:login' %}">Войти</a></p>
+<p class="alt-link"><a href="{% url 'mirror:index' %}">Продолжить без регистрации →</a></p>
+{% endblock %}

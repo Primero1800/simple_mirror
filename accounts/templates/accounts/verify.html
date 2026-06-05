@@ -1,0 +1,209 @@
+{% extends "accounts/base.html" %}
+{% block title %}Подтверждение{% endblock %}
+
+{% block content %}
+<h1>Введите код</h1>
+<p class="hint">Отправили 4-значный код на <strong>{{ email }}</strong></p>
+
+{% if error %}
+<div class="error-box">{{ error }}</div>
+{% endif %}
+
+<form method="post" id="otp-form" novalidate>
+  {% csrf_token %}
+  <input type="hidden" name="code" id="otp-hidden">
+
+  <div class="otp-row">
+    <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]" autofocus>
+    <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    <input type="text" class="otp-box" maxlength="1" inputmode="numeric" pattern="[0-9]">
+  </div>
+
+  <div id="timer-line">
+    Код действителен&nbsp;<span id="timer">1:00</span>
+  </div>
+
+  <p id="resend-line" hidden>
+    <a href="#" id="resend-link">Отправить код повторно</a>
+  </p>
+
+  <button type="submit" class="btn-primary" id="btn-submit">Подтвердить</button>
+</form>
+
+<style>
+  .hint {
+    font-size: 0.83rem;
+    color: #666;
+    margin-bottom: 24px;
+    line-height: 1.4;
+  }
+  .hint strong { color: #999; font-weight: 400; }
+
+  .otp-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 0 0 22px;
+  }
+
+  .otp-box {
+    width: 58px;
+    height: 62px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1.65rem;
+    font-weight: 300;
+    text-align: center;
+    outline: none;
+    caret-color: transparent;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+
+  .otp-box:focus {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.38);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.06);
+  }
+
+  .otp-box:disabled {
+    opacity: 0.22;
+  }
+
+  #timer-line {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #555;
+    margin-bottom: 14px;
+  }
+
+  #timer {
+    font-variant-numeric: tabular-nums;
+    color: #888;
+  }
+
+  #resend-line {
+    text-align: center;
+    font-size: 0.82rem;
+    margin-bottom: 14px;
+  }
+
+  #resend-line a {
+    color: #888;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  #resend-line a:hover { color: #ccc; }
+</style>
+
+<script>
+(function () {
+  var remaining  = {{ seconds_remaining }};
+  var boxes      = Array.from(document.querySelectorAll('.otp-box'));
+  var hidden     = document.getElementById('otp-hidden');
+  var timerEl    = document.getElementById('timer');
+  var timerLine  = document.getElementById('timer-line');
+  var resendLine = document.getElementById('resend-line');
+  var resendLink = document.getElementById('resend-link');
+  var submitBtn  = document.getElementById('btn-submit');
+  var form       = document.getElementById('otp-form');
+  var timerId    = null;
+
+  function fmt(s) {
+    return Math.floor(s / 60) + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
+  }
+
+  function syncHidden() {
+    hidden.value = boxes.map(function (b) { return b.value; }).join('');
+  }
+
+  function allFilled() {
+    return boxes.every(function (b) { return b.value !== ''; });
+  }
+
+  function expire() {
+    clearInterval(timerId);
+    timerLine.hidden = true;
+    resendLine.hidden = false;
+    boxes.forEach(function (b) { b.disabled = true; });
+    submitBtn.disabled = true;
+  }
+
+  function tick() {
+    remaining -= 1;
+    if (remaining <= 0) { expire(); return; }
+    timerEl.textContent = fmt(remaining);
+  }
+
+  if (remaining > 0) {
+    timerEl.textContent = fmt(remaining);
+    timerId = setInterval(tick, 1000);
+  } else {
+    expire();
+  }
+
+  boxes.forEach(function (box, i) {
+    box.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(-1);
+      syncHidden();
+      if (this.value && i < boxes.length - 1) boxes[i + 1].focus();
+      if (allFilled()) form.submit();
+    });
+
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !this.value && i > 0) boxes[i - 1].focus();
+    });
+
+    box.addEventListener('paste', function (e) {
+      e.preventDefault();
+      var digits = (e.clipboardData || window.clipboardData)
+        .getData('text').replace(/\D/g, '').split('').slice(0, 4);
+      digits.forEach(function (d, j) { if (boxes[i + j]) boxes[i + j].value = d; });
+      syncHidden();
+      var next = i + digits.length;
+      if (next < boxes.length) boxes[next].focus();
+      if (allFilled()) form.submit();
+    });
+  });
+
+  resendLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    resendLink.textContent = 'Отправляем…';
+    resendLink.style.pointerEvents = 'none';
+
+    var csrf = (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+
+    fetch('{% url "accounts:resend_otp" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrf }
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok) {
+        remaining = data.seconds;
+        timerEl.textContent = fmt(remaining);
+        timerLine.hidden = false;
+        resendLine.hidden = true;
+        boxes.forEach(function (b) { b.disabled = false; b.value = ''; });
+        submitBtn.disabled = false;
+        syncHidden();
+        boxes[0].focus();
+        clearInterval(timerId);
+        timerId = setInterval(tick, 1000);
+      } else {
+        resendLink.textContent = data.error || 'Ошибка. Попробуйте ещё раз.';
+        resendLink.style.pointerEvents = 'auto';
+      }
+    })
+    .catch(function () {
+      resendLink.textContent = 'Ошибка. Попробуйте ещё раз.';
+      resendLink.style.pointerEvents = 'auto';
+    });
+  });
+}());
+</script>
+{% endblock %}
