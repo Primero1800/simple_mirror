@@ -27,6 +27,7 @@ jobs:
             git reset --hard origin/main
             source venv/bin/activate
             pip install -r requirements.txt -q
+            python manage.py compilemessages
             python manage.py migrate --noinput
             python manage.py collectstatic --noinput
             touch tmp/restart.txt
