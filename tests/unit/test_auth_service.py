@@ -6,10 +6,10 @@ from unittest.mock import MagicMock, patch
 AUTH = 'accounts.services.auth_service'
 
 
-@pytest.mark.django_db
 class TestRegister:
     def test_creates_inactive_user_and_sends_otp(self, mock_user, mock_otp):
-        with patch(f'{AUTH}.UserRepository') as ur, \
+        with patch(f'{AUTH}.transaction.atomic'), \
+             patch(f'{AUTH}.UserRepository') as ur, \
              patch(f'{AUTH}.OTPRepository') as otr, \
              patch(f'{AUTH}.EmailService') as es:
             ur.get_by_email.return_value = None
@@ -29,7 +29,8 @@ class TestRegister:
             assert result is mock_user
 
     def test_raises_if_active_email_exists(self, mock_user):
-        with patch(f'{AUTH}.UserRepository') as ur:
+        with patch(f'{AUTH}.transaction.atomic'), \
+             patch(f'{AUTH}.UserRepository') as ur:
             mock_user.is_active = True
             ur.get_by_email.return_value = mock_user
 
@@ -40,7 +41,8 @@ class TestRegister:
     def test_replaces_inactive_user(self, mock_user, mock_otp):
         inactive = MagicMock()
         inactive.is_active = False
-        with patch(f'{AUTH}.UserRepository') as ur, \
+        with patch(f'{AUTH}.transaction.atomic'), \
+             patch(f'{AUTH}.UserRepository') as ur, \
              patch(f'{AUTH}.OTPRepository') as otr, \
              patch(f'{AUTH}.EmailService'):
             ur.get_by_email.return_value = inactive
@@ -53,10 +55,10 @@ class TestRegister:
             inactive.delete.assert_called_once()
 
 
-@pytest.mark.django_db
 class TestSendOtp:
     def test_creates_otp_and_dispatches_email(self, mock_user, mock_otp):
-        with patch(f'{AUTH}.OTPRepository') as otr, \
+        with patch(f'{AUTH}.transaction.atomic'), \
+             patch(f'{AUTH}.OTPRepository') as otr, \
              patch(f'{AUTH}.EmailService') as es:
             otr.delete_for_user.return_value = None
             otr.create.return_value = mock_otp
