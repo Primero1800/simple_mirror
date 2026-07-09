@@ -31,6 +31,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
@@ -88,6 +89,10 @@ LANGUAGES = [
     ('en', 'English'),
 ]
 LOCALE_PATHS = [BASE_DIR / 'locale']
+
+# ── Redis ──────────────────────────────────────────────────────────────────────
+REDIS_HOST: str = os.environ.get('REDIS_HOST', '127.0.0.1')
+REDIS_PORT: int = int(os.environ.get('REDIS_PORT', '6379'))
 
 # ── OTP ────────────────────────────────────────────────────────────────────────
 OTP_LIFETIME_SECONDS: int = int(os.environ.get('EMAIL_CODE_LIFETIME', 60))

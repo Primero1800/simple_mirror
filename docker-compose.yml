@@ -15,6 +15,18 @@ services:
     networks:
       - mirror_network
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    expose:
+      - "${REDIS_PORT}"
+    ports:
+      - "6380:${REDIS_PORT}"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mirror_network
+
   web:
     restart: unless-stopped
     build:
@@ -25,12 +37,14 @@ services:
       - .env
     depends_on:
       - db
+      - redis
     command: ["sh", "-c", "python manage.py migrate --no-input && python manage.py runserver 0.0.0.0:8000"]
     networks:
       - mirror_network
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   mirror_network:
