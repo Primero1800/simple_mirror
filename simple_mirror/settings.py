@@ -103,7 +103,13 @@ CACHES = {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': f"{_REDIS_URL}/0",
         'TIMEOUT': 60 * 60 * 24 * 180,  # 6 months (matches SESSION_COOKIE_AGE)
-        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'socket_timeout': 1,
+                'socket_connect_timeout': 1,
+            },
+        },
         'KEY_PREFIX': 'mirror',
     },
     # OTP attempt counters (otp_attempts::{email}) and resend cooldowns
@@ -113,7 +119,13 @@ CACHES = {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': f"{_REDIS_URL}/1",
         'TIMEOUT': 60 * 60 * 24,  # 24 h — attempt counters double as the block
-        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'socket_timeout': 1,
+                'socket_connect_timeout': 1,
+            },
+        },
         'KEY_PREFIX': 'mirror',
     },
 }
@@ -139,3 +151,71 @@ EMAIL_TIMEOUT = 5
 EMAIL_MAX_RETRIES: int = int(os.environ.get('EMAIL_MAX_RETRIES', 3))
 EMAIL_RETRY_DELAY: float = float(os.environ.get('EMAIL_RETRY_DELAY', 0.5))
 EMAIL_THREAD_POOL_SIZE: int = int(os.environ.get('EMAIL_THREAD_POOL_SIZE', 4))
+
+# ── Logging ────────────────────────────────────────────────────────────────────
+# Fill ADMINS to receive error emails on production (requires DEBUG=False).
+ADMINS: list = []
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_false': {'()': 'django.utils.log.RequireDebugFalse'},
+        'require_debug_true': {'()': 'django.utils.log.RequireDebugTrue'},
+    },
+    'formatters': {
+        'django.server': {
+            '()': 'django.utils.log.ServerFormatter',
+            'format': '[{server_time}] {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{asctime}] {levelname} {name}: {message}',
+            'datefmt': '%Y.%m.%d %H:%M:%S',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'INFO',
+            'filename': BASE_DIR / 'logging' / 'logs.log',
+            'maxBytes': 1_048_576,
+            'backupCount': 10,
+            'formatter': 'simple',
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'formatter': 'django.server',
+        },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+        },
+        'django.server': {
+            'class': 'logging.StreamHandler',
+            'level': 'WARNING',
+            'formatter': 'django.server',
+        },
+    },
+    'loggers': {
+        # Root logger — catches all our app loggers (accounts.*, mirror.*, etc.)
+        '': {
+            'handlers': ['file', 'console', 'mail_admins'],
+            'level': 'INFO',
+        },
+        # Django internals — same destinations, propagate=False prevents duplicate writes
+        'django': {
+            'handlers': ['file', 'console', 'mail_admins'],
+            'propagate': False,
+        },
+        # Dev-server access log — separate handler only, no file spam
+        'django.server': {
+            'handlers': ['django.server'],
+            'propagate': False,
+        },
+    },
+}
