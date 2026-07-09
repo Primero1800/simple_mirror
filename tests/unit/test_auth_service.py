@@ -35,7 +35,8 @@ class TestRegister:
             ur.get_by_email.return_value = mock_user
 
             from accounts.services.auth_service import AuthService
-            with pytest.raises(ValueError, match='already exists'):
+            from accounts.exceptions import UserAlreadyExistsError
+            with pytest.raises(UserAlreadyExistsError):
                 AuthService.register('test@example.com', 'password')
 
     def test_replaces_inactive_user(self, mock_user, mock_otp):

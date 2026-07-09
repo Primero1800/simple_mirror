@@ -1,13 +1,18 @@
+import logging
 import secrets
 from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db import transaction
+from django.utils.translation import gettext_lazy as _
 
+from accounts.exceptions import UserAlreadyExistsError
 from accounts.models import OTPCode, User
 from accounts.repositories.otp_repo import OTPRepository
 from accounts.repositories.user_repo import UserRepository
 from accounts.services.email_service import EmailService
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -51,7 +56,7 @@ class AuthService:
             Newly created, inactive User.
 
         Raises:
-            ValueError: If an *active* account with *email* already exists.
+            UserAlreadyExistsError: If an *active* account with *email* already exists.
         """
         # 1. Open an atomic block covering all DB writes
         with transaction.atomic():
@@ -59,7 +64,8 @@ class AuthService:
             existing = UserRepository.get_by_email(email)
             if existing is not None:
                 if existing.is_active:
-                    raise ValueError('A user with this email already exists')
+                    logger.warning('Registration attempt with already active email: %s', email)
+                    raise UserAlreadyExistsError(_('Пользователь с таким email уже существует'))
                 existing.delete()  # cascades to OTPCode rows
 
             # 3. Create inactive user and fresh OTP

@@ -9,6 +9,7 @@ from django.shortcuts import redirect, render
 from django.utils.translation import get_language, activate, gettext_lazy as _
 from django.views.decorators.http import require_POST
 
+from accounts.exceptions import EmailDeliveryError, UserAlreadyExistsError
 from accounts.forms import LoginForm, RegisterForm
 from accounts.services.auth_service import AuthService
 
@@ -33,10 +34,10 @@ def register(request: HttpRequest) -> HttpResponse:
                 email=form.cleaned_data['email'],
                 password=form.cleaned_data['password'],
             )
-        except ValueError as exc:
+        except UserAlreadyExistsError as exc:
             form.add_error('email', str(exc))
-        except RuntimeError:
-            form.add_error(None, str(_('Не удалось отправить код. Попробуйте позже.')))
+        except EmailDeliveryError as exc:
+            form.add_error(None, str(exc))
         else:
             request.session['pending_user_id'] = user.pk
             request.session['otp_purpose'] = 'register'
@@ -68,8 +69,8 @@ def login_view(request: HttpRequest) -> HttpResponse:
             if user:
                 try:
                     AuthService.send_otp(user)
-                except RuntimeError:
-                    error = str(_('Не удалось отправить код. Попробуйте позже.'))
+                except EmailDeliveryError as exc:
+                    error = str(exc)
                 else:
                     request.session['pending_user_id'] = user.pk
                     request.session['otp_purpose'] = 'login'
@@ -146,8 +147,8 @@ def resend_otp(request: HttpRequest) -> JsonResponse:
 
     try:
         AuthService.send_otp(user)
-    except RuntimeError:
-        return JsonResponse({'ok': False, 'error': str(_('Не удалось отправить код'))})
+    except EmailDeliveryError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)})
 
     lifetime: int = settings.OTP_LIFETIME_SECONDS
     return JsonResponse({'ok': True, 'seconds': lifetime})
