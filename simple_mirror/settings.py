@@ -12,7 +12,7 @@ SECRET_KEY = os.environ.get(
     'django-insecure-sm1rr0r-x7k2p9q4n8v3j6w5t1y0u8i3o6l4a9s2d5f8g1h7b0c',
 )
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ['*']
 
@@ -105,6 +105,7 @@ CACHES = {
         'TIMEOUT': 60 * 60 * 24 * 180,  # 6 months (matches SESSION_COOKIE_AGE)
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,
             'CONNECTION_POOL_KWARGS': {
                 'socket_timeout': 1,
                 'socket_connect_timeout': 1,
@@ -152,9 +153,11 @@ EMAIL_MAX_RETRIES: int = int(os.environ.get('EMAIL_MAX_RETRIES', 3))
 EMAIL_RETRY_DELAY: float = float(os.environ.get('EMAIL_RETRY_DELAY', 0.5))
 EMAIL_THREAD_POOL_SIZE: int = int(os.environ.get('EMAIL_THREAD_POOL_SIZE', 4))
 
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
+
 # ── Logging ────────────────────────────────────────────────────────────────────
 # Fill ADMINS to receive error emails on production (requires DEBUG=False).
-ADMINS: list = []
+ADMINS: list[tuple[str, str]] = []
 
 LOGGING = {
     'version': 1,
