@@ -70,7 +70,8 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'accounts.User'
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 180  # 6 months
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
@@ -93,9 +94,34 @@ LOCALE_PATHS = [BASE_DIR / 'locale']
 # ── Redis ──────────────────────────────────────────────────────────────────────
 REDIS_HOST: str = os.environ.get('REDIS_HOST', '127.0.0.1')
 REDIS_PORT: int = int(os.environ.get('REDIS_PORT', '6379'))
+_REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}"
+
+CACHES = {
+    # Sessions live here; also used by @cache_page / {% cache %} when added later.
+    # Explicit timeout always wins over this default, so mixing uses is safe.
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f"{_REDIS_URL}/0",
+        'TIMEOUT': 60 * 60 * 24 * 180,  # 6 months (matches SESSION_COOKIE_AGE)
+        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        'KEY_PREFIX': 'mirror',
+    },
+    # OTP attempt counters (otp_attempts::{email}) and resend cooldowns
+    # (otp_cooldown::{email}). Default TTL covers attempt counters; cooldowns
+    # always pass an explicit timeout=30 at write time.
+    'otp': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': f"{_REDIS_URL}/1",
+        'TIMEOUT': 60 * 60 * 24,  # 24 h — attempt counters double as the block
+        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        'KEY_PREFIX': 'mirror',
+    },
+}
 
 # ── OTP ────────────────────────────────────────────────────────────────────────
 OTP_LIFETIME_SECONDS: int = int(os.environ.get('EMAIL_CODE_LIFETIME', 60))
+OTP_MAX_ATTEMPTS: int = 5
+OTP_RESEND_COOLDOWN_SECONDS: int = 30
 
 # ── Email ──────────────────────────────────────────────────────────────────────
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
