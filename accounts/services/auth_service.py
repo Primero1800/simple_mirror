@@ -31,7 +31,7 @@ class AuthService:
         # 2. Generate a cryptographically secure 4-digit code
         code = f'{secrets.randbelow(10000):04d}'
         # 3. Compute expiry timestamp from settings
-        lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
+        lifetime: int = settings.OTP_LIFETIME_SECONDS
         expires_at = datetime.now() + timedelta(seconds=lifetime)
         # 4. Persist and return the new record
         return OTPRepository.create(user=user, code=code, expires_at=expires_at)

@@ -149,7 +149,7 @@ def resend_otp(request: HttpRequest) -> JsonResponse:
     except RuntimeError:
         return JsonResponse({'ok': False, 'error': str(_('Не удалось отправить код'))})
 
-    lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
+    lifetime: int = settings.OTP_LIFETIME_SECONDS
     return JsonResponse({'ok': True, 'seconds': lifetime})
 
 

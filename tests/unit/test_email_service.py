@@ -29,8 +29,8 @@ class TestSendOtp:
             t.sleep.assert_called_once_with(0.5 * (2 ** 0))
 
     def test_raises_after_all_retries_exhausted(self, settings):
-        settings.EMAIL_OTP_MAX_RETRIES = 2
-        settings.EMAIL_OTP_RETRY_DELAY = 0.5
+        settings.EMAIL_MAX_RETRIES = 2
+        settings.EMAIL_RETRY_DELAY = 0.5
         with patch(f'{EMAIL}.send_mail', side_effect=Exception('boom')), \
              patch(f'{EMAIL}.time'):
             from accounts.services.email_service import EmailService
@@ -38,8 +38,8 @@ class TestSendOtp:
                 EmailService.send_otp('a@b.com', '1111')
 
     def test_no_sleep_after_last_attempt(self, settings):
-        settings.EMAIL_OTP_MAX_RETRIES = 3
-        settings.EMAIL_OTP_RETRY_DELAY = 0.5
+        settings.EMAIL_MAX_RETRIES = 3
+        settings.EMAIL_RETRY_DELAY = 0.5
         with patch(f'{EMAIL}.send_mail', side_effect=Exception('boom')), \
              patch(f'{EMAIL}.time') as t:
             from accounts.services.email_service import EmailService
@@ -49,8 +49,8 @@ class TestSendOtp:
             assert t.sleep.call_count == 2
 
     def test_backoff_doubles_each_attempt(self, settings):
-        settings.EMAIL_OTP_MAX_RETRIES = 3
-        settings.EMAIL_OTP_RETRY_DELAY = 0.5
+        settings.EMAIL_MAX_RETRIES = 3
+        settings.EMAIL_RETRY_DELAY = 0.5
         with patch(f'{EMAIL}.send_mail', side_effect=Exception('boom')), \
              patch(f'{EMAIL}.time') as t:
             from accounts.services.email_service import EmailService

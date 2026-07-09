@@ -119,9 +119,12 @@ CACHES = {
 }
 
 # ── OTP ────────────────────────────────────────────────────────────────────────
-OTP_LIFETIME_SECONDS: int = int(os.environ.get('EMAIL_CODE_LIFETIME', 60))
-OTP_MAX_ATTEMPTS: int = 5
-OTP_RESEND_COOLDOWN_SECONDS: int = 30
+OTP_LIFETIME_SECONDS: int = int(os.environ.get('OTP_LIFETIME_SECONDS', 60))
+OTP_MAX_ATTEMPTS: int = int(os.environ.get('OTP_MAX_ATTEMPTS', 0))
+OTP_RESEND_COOLDOWN_SECONDS: int = int(os.environ.get('OTP_RESEND_COOLDOWN_SECONDS', 0))
+OTP_CACHE_KEY_SEPARATOR: str = '::'
+OTP_ATTEMPTS_KEY_PREFIX: str = 'otp_attempts'
+OTP_COOLDOWN_KEY_PREFIX: str = 'otp_cooldown'
 
 # ── Email ──────────────────────────────────────────────────────────────────────
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'localhost')
@@ -133,6 +136,6 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'noreply@example.com'
 EMAIL_TIMEOUT = 5
 
-EMAIL_OTP_MAX_RETRIES: int = 3
-EMAIL_OTP_RETRY_DELAY: float = 0.5
-EMAIL_OTP_THREAD_POOL_SIZE: int = 4
+EMAIL_MAX_RETRIES: int = int(os.environ.get('EMAIL_MAX_RETRIES', 3))
+EMAIL_RETRY_DELAY: float = float(os.environ.get('EMAIL_RETRY_DELAY', 0.5))
+EMAIL_THREAD_POOL_SIZE: int = int(os.environ.get('EMAIL_THREAD_POOL_SIZE', 4))

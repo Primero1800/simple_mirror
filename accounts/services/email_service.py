@@ -15,7 +15,7 @@ def _get_executor() -> ThreadPoolExecutor:
     """Return the shared thread-pool, creating it lazily on first use."""
     global _executor
     if _executor is None:
-        max_workers: int = getattr(settings, 'EMAIL_OTP_THREAD_POOL_SIZE', 4)
+        max_workers: int = settings.EMAIL_THREAD_POOL_SIZE
         _executor = ThreadPoolExecutor(max_workers=max_workers)
     return _executor
 
@@ -46,9 +46,9 @@ class EmailService:
         Raises:
             RuntimeError: When all retry attempts are exhausted.
         """
-        max_retries: int = getattr(settings, 'EMAIL_OTP_MAX_RETRIES', 3)
-        retry_delay: float = getattr(settings, 'EMAIL_OTP_RETRY_DELAY', 1.0)
-        lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
+        max_retries: int = settings.EMAIL_MAX_RETRIES
+        retry_delay: float = settings.EMAIL_RETRY_DELAY
+        lifetime: int = settings.OTP_LIFETIME_SECONDS
 
         from django.utils.translation import gettext as _
         subject = _('Mirror — код подтверждения')
