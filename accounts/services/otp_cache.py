@@ -1,4 +1,5 @@
 import logging
+import time
 
 from django.conf import settings
 from django.core.cache import caches
@@ -41,6 +42,8 @@ class OTPCacheService:
             logger.error('Redis unavailable in is_blocked: %s: %s', type(exc).__name__, exc)
             return False
         max_attempts: int = settings.OTP_MAX_ATTEMPTS
+        if max_attempts == 0:
+            return False
         return attempts is not None and attempts >= max_attempts
 
     @staticmethod
@@ -84,14 +87,18 @@ class OTPCacheService:
     def set_resend_cooldown(email: str) -> None:
         """Start the resend cooldown window for an email address.
 
+        Stores the expiry Unix timestamp so remaining seconds can be calculated
+        without relying on backend-specific ttl() support.
+
         TTL is read from OTP_RESEND_COOLDOWN_SECONDS in settings.
 
         Args:
             email: User email address.
         """
         cooldown: int = settings.OTP_RESEND_COOLDOWN_SECONDS
+        expires_at = int(time.time()) + cooldown
         try:
-            caches[_ALIAS].set(f"{_COOLDOWN_PREFIX}{_SEP}{email}", 1, timeout=cooldown)
+            caches[_ALIAS].set(f"{_COOLDOWN_PREFIX}{_SEP}{email}", expires_at, timeout=cooldown)
         except (ConnectionInterrupted, RedisError) as exc:
             logger.error('Redis unavailable in set_resend_cooldown: %s: %s', type(exc).__name__, exc)
 
@@ -107,8 +114,10 @@ class OTPCacheService:
             Returns 0 on Redis errors (fail-open: missing cooldown is not a user action).
         """
         try:
-            ttl = caches[_ALIAS].ttl(f"{_COOLDOWN_PREFIX}{_SEP}{email}")
+            expires_at = caches[_ALIAS].get(f"{_COOLDOWN_PREFIX}{_SEP}{email}")
         except (ConnectionInterrupted, RedisError) as exc:
             logger.error('Redis unavailable in get_resend_cooldown_ttl: %s: %s', type(exc).__name__, exc)
             return 0
-        return max(0, ttl or 0)
+        if expires_at is None:
+            return 0
+        return max(0, expires_at - int(time.time()))
