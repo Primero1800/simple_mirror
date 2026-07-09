@@ -35,10 +35,11 @@ class TestRegister:
             ur.get_by_email.return_value = mock_user
 
             from accounts.services.auth_service import AuthService
-            with pytest.raises(ValueError, match='already exists'):
+            from accounts.exceptions import UserAlreadyExistsError
+            with pytest.raises(UserAlreadyExistsError):
                 AuthService.register('test@example.com', 'password')
 
-    def test_replaces_inactive_user(self, mock_user, mock_otp):
+    def test_reuses_inactive_user_with_new_password(self, mock_user, mock_otp):
         inactive = MagicMock()
         inactive.is_active = False
         with patch(f'{AUTH}.transaction.atomic'), \
@@ -46,20 +47,24 @@ class TestRegister:
              patch(f'{AUTH}.OTPRepository') as otr, \
              patch(f'{AUTH}.EmailService'):
             ur.get_by_email.return_value = inactive
-            ur.create.return_value = mock_user
+            ur.update_password.return_value = mock_user
             otr.create.return_value = mock_otp
 
             from accounts.services.auth_service import AuthService
-            AuthService.register('test@example.com', 'password')
+            result = AuthService.register('test@example.com', 'password')
 
-            inactive.delete.assert_called_once()
+            ur.update_password.assert_called_once_with(inactive, 'password')
+            ur.create.assert_not_called()
+            assert result is mock_user
 
 
 class TestSendOtp:
     def test_creates_otp_and_dispatches_email(self, mock_user, mock_otp):
         with patch(f'{AUTH}.transaction.atomic'), \
              patch(f'{AUTH}.OTPRepository') as otr, \
-             patch(f'{AUTH}.EmailService') as es:
+             patch(f'{AUTH}.EmailService') as es, \
+             patch(f'{AUTH}.OTPCacheService') as cache:
+            cache.get_resend_cooldown_ttl.return_value = 0
             otr.delete_for_user.return_value = None
             otr.create.return_value = mock_otp
 
@@ -70,11 +75,29 @@ class TestSendOtp:
             es.send_otp_async.assert_called_once_with(
                 email=mock_user.email, code=mock_otp.code
             )
+            cache.set_resend_cooldown.assert_called_once_with(mock_user.email)
+
+    def test_raises_cooldown_error_when_active(self, mock_user):
+        with patch(f'{AUTH}.OTPCacheService') as cache, \
+             patch(f'{AUTH}.OTPRepository') as otr, \
+             patch(f'{AUTH}.EmailService') as es:
+            cache.get_resend_cooldown_ttl.return_value = 15
+
+            from accounts.services.auth_service import AuthService
+            from accounts.exceptions import OTPCooldownError
+            with pytest.raises(OTPCooldownError) as exc_info:
+                AuthService.send_otp(mock_user)
+
+            assert exc_info.value.seconds_remaining == 15
+            otr.create.assert_not_called()
+            es.send_otp_async.assert_not_called()
 
 
 class TestVerifyOtp:
     def test_valid_code_returns_true_and_deletes(self, mock_user, mock_otp):
-        with patch(f'{AUTH}.OTPRepository') as otr:
+        with patch(f'{AUTH}.OTPRepository') as otr, \
+             patch(f'{AUTH}.OTPCacheService') as cache:
+            cache.is_blocked.return_value = False
             otr.get_latest.return_value = mock_otp
             mock_otp.code = '1234'
 
@@ -83,28 +106,80 @@ class TestVerifyOtp:
 
             assert result is True
             otr.delete.assert_called_once_with(mock_otp)
+            cache.reset_attempts.assert_called_once_with(mock_user.email)
 
     def test_wrong_code_returns_false(self, mock_user, mock_otp):
-        with patch(f'{AUTH}.OTPRepository') as otr:
+        with patch(f'{AUTH}.OTPRepository') as otr, \
+             patch(f'{AUTH}.OTPCacheService') as cache:
+            cache.is_blocked.return_value = False
+            cache.record_failed_attempt.return_value = 1
             otr.get_latest.return_value = mock_otp
             mock_otp.code = '1234'
 
             from accounts.services.auth_service import AuthService
             assert AuthService.verify_otp(mock_user, '0000') is False
+            cache.record_failed_attempt.assert_called_once_with(mock_user.email)
 
     def test_expired_otp_returns_false(self, mock_user, expired_otp):
-        with patch(f'{AUTH}.OTPRepository') as otr:
+        with patch(f'{AUTH}.OTPRepository') as otr, \
+             patch(f'{AUTH}.OTPCacheService') as cache:
+            cache.is_blocked.return_value = False
             otr.get_latest.return_value = expired_otp
 
             from accounts.services.auth_service import AuthService
             assert AuthService.verify_otp(mock_user, '1234') is False
 
     def test_no_otp_returns_false(self, mock_user):
-        with patch(f'{AUTH}.OTPRepository') as otr:
+        with patch(f'{AUTH}.OTPRepository') as otr, \
+             patch(f'{AUTH}.OTPCacheService') as cache:
+            cache.is_blocked.return_value = False
             otr.get_latest.return_value = None
 
             from accounts.services.auth_service import AuthService
             assert AuthService.verify_otp(mock_user, '1234') is False
+
+    def test_blocked_email_raises_before_checking_code(self, mock_user):
+        with patch(f'{AUTH}.OTPCacheService') as cache, \
+             patch(f'{AUTH}.OTPRepository') as otr:
+            cache.is_blocked.return_value = True
+
+            from accounts.services.auth_service import AuthService
+            from accounts.exceptions import OTPBlockedError
+            with pytest.raises(OTPBlockedError):
+                AuthService.verify_otp(mock_user, '1234')
+
+            otr.get_latest.assert_not_called()
+
+    def test_wrong_code_raises_blocked_error_at_max_attempts(self, mock_user, mock_otp):
+        with patch(f'{AUTH}.OTPRepository') as otr, \
+             patch(f'{AUTH}.OTPCacheService') as cache, \
+             patch(f'{AUTH}.settings') as mock_settings:
+            cache.is_blocked.return_value = False
+            cache.record_failed_attempt.return_value = 5
+            mock_settings.OTP_MAX_ATTEMPTS = 5
+            otr.get_latest.return_value = mock_otp
+            mock_otp.code = '1234'
+
+            from accounts.services.auth_service import AuthService
+            from accounts.exceptions import OTPBlockedError
+            with pytest.raises(OTPBlockedError):
+                AuthService.verify_otp(mock_user, '0000')
+
+
+class TestGetSecondsRemaining:
+    def test_returns_zero_when_no_otp(self, mock_user):
+        with patch(f'{AUTH}.OTPRepository') as otr:
+            otr.get_latest.return_value = None
+
+            from accounts.services.auth_service import AuthService
+            assert AuthService.get_seconds_remaining(mock_user) == 0
+
+    def test_returns_positive_seconds_when_otp_active(self, mock_user, mock_otp):
+        with patch(f'{AUTH}.OTPRepository') as otr:
+            otr.get_latest.return_value = mock_otp
+
+            from accounts.services.auth_service import AuthService
+            assert AuthService.get_seconds_remaining(mock_user) > 0
 
 
 class TestAuthenticate:

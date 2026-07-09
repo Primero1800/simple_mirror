@@ -1,3 +1,5 @@
+from django.contrib.auth.models import BaseUserManager
+
 from accounts.models import User
 
 
@@ -8,14 +10,18 @@ class UserRepository:
     def get_by_email(email: str) -> User | None:
         """Fetch a user by email address.
 
+        Normalises the domain part to lowercase before querying so that
+        'user@EXAMPLE.COM' and 'user@example.com' resolve to the same record,
+        matching the behaviour of UserManager.create_user().
+
         Args:
-            email: Exact email to look up.
+            email: Email to look up (domain normalised before query).
 
         Returns:
             Matching User or None.
         """
         try:
-            return User.objects.get(email=email)
+            return User.objects.get(email=BaseUserManager.normalize_email(email))
         except User.DoesNotExist:
             return None
 
@@ -61,4 +67,19 @@ class UserRepository:
             The same User after save().
         """
         user.save()
+        return user
+
+    @staticmethod
+    def update_password(user: User, password: str) -> User:
+        """Hash and persist a new password for an existing user.
+
+        Args:
+            user: User whose password is being changed.
+            password: Plain-text password to hash and store.
+
+        Returns:
+            The same User after save().
+        """
+        user.set_password(password)
+        user.save(update_fields=['password'])
         return user

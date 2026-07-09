@@ -5,6 +5,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils.translation import gettext_lazy as _
+
+from accounts.exceptions import EmailDeliveryError
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +18,7 @@ def _get_executor() -> ThreadPoolExecutor:
     """Return the shared thread-pool, creating it lazily on first use."""
     global _executor
     if _executor is None:
-        max_workers: int = getattr(settings, 'EMAIL_OTP_THREAD_POOL_SIZE', 4)
+        max_workers: int = settings.EMAIL_THREAD_POOL_SIZE
         _executor = ThreadPoolExecutor(max_workers=max_workers)
     return _executor
 
@@ -44,13 +47,12 @@ class EmailService:
             code: 4-digit OTP string.
 
         Raises:
-            RuntimeError: When all retry attempts are exhausted.
+            EmailDeliveryError: When all retry attempts are exhausted.
         """
-        max_retries: int = getattr(settings, 'EMAIL_OTP_MAX_RETRIES', 3)
-        retry_delay: float = getattr(settings, 'EMAIL_OTP_RETRY_DELAY', 1.0)
-        lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
+        max_retries: int = settings.EMAIL_MAX_RETRIES
+        retry_delay: float = settings.EMAIL_RETRY_DELAY
+        lifetime: int = settings.OTP_LIFETIME_SECONDS
 
-        from django.utils.translation import gettext as _
         subject = _('Mirror — код подтверждения')
         message = _(
             'Ваш код подтверждения: %(code)s\n\n'
@@ -78,8 +80,9 @@ class EmailService:
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay * (2 ** attempt))
 
-        raise RuntimeError(
-            f'Failed to send OTP email after {max_retries} attempts'
+        logger.error('Failed to send OTP email to %s after %d attempts', email, max_retries)
+        raise EmailDeliveryError(
+            _('Не удалось отправить код. Попробуйте позже.')
         ) from last_exc
 
     @staticmethod

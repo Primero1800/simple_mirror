@@ -1,6 +1,15 @@
 """Integration tests for auth endpoints (register / login / verify / resend / logout)."""
 import pytest
+from django.core.cache import caches
 from django.urls import reverse
+
+
+@pytest.fixture(autouse=True)
+def clear_otp_cache():
+    """Ensure the 'otp' rate-limit cache starts empty for every test."""
+    caches['otp'].clear()
+    yield
+    caches['otp'].clear()
 
 
 # ── Register ──────────────────────────────────────────────────────────────────
@@ -85,10 +94,31 @@ def test_login_inactive_user_shows_error(client, inactive_user):
     assert response.context['error'] is not None
 
 
+@pytest.mark.django_db
+def test_login_during_resend_cooldown_shows_error(client, settings, active_user):
+    settings.OTP_RESEND_COOLDOWN_SECONDS = 30
+    credentials = {'email': active_user.email, 'password': 'Str0ngPass!'}
+    client.post(reverse('accounts:login'), credentials)  # first OTP starts the cooldown
+
+    response = client.post(reverse('accounts:login'), credentials)
+    assert response.status_code == 200
+    assert response.context['error'] is not None
+
+
 # ── Verify ────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 def test_verify_no_session_redirects_to_login(client):
+    response = client.get(reverse('accounts:verify'))
+    assert response.status_code == 302
+    assert reverse('accounts:login') in response['Location']
+
+
+@pytest.mark.django_db
+def test_verify_stale_user_id_redirects_to_login(client, db):
+    session = client.session
+    session['pending_user_id'] = 999999
+    session.save()
     response = client.get(reverse('accounts:verify'))
     assert response.status_code == 302
     assert reverse('accounts:login') in response['Location']
@@ -122,12 +152,30 @@ def test_verify_expired_code_shows_error(client, db, inactive_user, otp_for_user
     assert response.context['error'] is not None
 
 
+@pytest.mark.django_db
+def test_verify_blocked_after_max_attempts_shows_error(client, settings, pending_session):
+    settings.OTP_MAX_ATTEMPTS = 1
+    pending_client, _ = pending_session
+    response = pending_client.post(reverse('accounts:verify'), {'code': '0000'})
+    assert response.status_code == 200
+    assert response.context['error'] is not None
+
+
 # ── Resend ────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
 def test_resend_no_session_returns_error_json(client):
     response = client.post(reverse('accounts:resend_otp'))
     assert response.status_code == 200
+    assert response.json()['ok'] is False
+
+
+@pytest.mark.django_db
+def test_resend_stale_user_id_returns_error_json(client, db):
+    session = client.session
+    session['pending_user_id'] = 999999
+    session.save()
+    response = client.post(reverse('accounts:resend_otp'))
     assert response.json()['ok'] is False
 
 
@@ -139,6 +187,18 @@ def test_resend_with_session_returns_ok(client, pending_session):
     assert 'seconds' in response.json()
 
 
+@pytest.mark.django_db
+def test_resend_during_cooldown_returns_error(client, settings, pending_session):
+    settings.OTP_RESEND_COOLDOWN_SECONDS = 30
+    pending_client, _ = pending_session
+    pending_client.post(reverse('accounts:resend_otp'))  # first call starts the cooldown
+
+    response = pending_client.post(reverse('accounts:resend_otp'))
+    body = response.json()
+    assert body['ok'] is False
+    assert body['seconds_remaining'] > 0
+
+
 # ── Logout ────────────────────────────────────────────────────────────────────
 
 @pytest.mark.django_db
@@ -147,3 +207,12 @@ def test_logout_redirects_to_login(auth_client):
     response = client.post(reverse('accounts:logout'))
     assert response.status_code == 302
     assert reverse('accounts:login') in response['Location']
+
+
+# ── Password reset ───────────────────────────────────────────────────────────
+
+@pytest.mark.django_db
+def test_password_reset_redirects_to_done(client, active_user):
+    response = client.post(reverse('accounts:password_reset'), {'email': active_user.email})
+    assert response.status_code == 302
+    assert response['Location'] == reverse('accounts:password_reset_done')

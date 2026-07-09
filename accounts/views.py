@@ -9,6 +9,7 @@ from django.shortcuts import redirect, render
 from django.utils.translation import get_language, activate, gettext_lazy as _
 from django.views.decorators.http import require_POST
 
+from accounts.exceptions import EmailDeliveryError, OTPBlockedError, OTPCooldownError, UserAlreadyExistsError
 from accounts.forms import LoginForm, RegisterForm
 from accounts.services.auth_service import AuthService
 
@@ -33,10 +34,10 @@ def register(request: HttpRequest) -> HttpResponse:
                 email=form.cleaned_data['email'],
                 password=form.cleaned_data['password'],
             )
-        except ValueError as exc:
+        except UserAlreadyExistsError as exc:
             form.add_error('email', str(exc))
-        except RuntimeError:
-            form.add_error(None, str(_('Не удалось отправить код. Попробуйте позже.')))
+        except EmailDeliveryError as exc:
+            form.add_error(None, str(exc))
         else:
             request.session['pending_user_id'] = user.pk
             request.session['otp_purpose'] = 'register'
@@ -68,8 +69,10 @@ def login_view(request: HttpRequest) -> HttpResponse:
             if user:
                 try:
                     AuthService.send_otp(user)
-                except RuntimeError:
-                    error = str(_('Не удалось отправить код. Попробуйте позже.'))
+                except OTPCooldownError as exc:
+                    error = str(exc)
+                except EmailDeliveryError as exc:
+                    error = str(exc)
                 else:
                     request.session['pending_user_id'] = user.pk
                     request.session['otp_purpose'] = 'login'
@@ -107,16 +110,21 @@ def verify_otp(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         # 3. Validate the submitted code against the stored OTP record
         code: str = request.POST.get('code', '')
-        if not AuthService.verify_otp(user, code):
-            error = str(_('Неверный или истёкший код'))
+        try:
+            verified = AuthService.verify_otp(user, code)
+        except OTPBlockedError as exc:
+            error = str(exc)
         else:
-            # 4. Activate account on first registration, then log the user in
-            purpose = request.session.pop('otp_purpose', 'login')
-            request.session.pop('pending_user_id', None)
-            if purpose == 'register':
-                AuthService.activate(user)
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            return redirect('mirror:index')
+            if not verified:
+                error = str(_('Неверный или истёкший код'))
+            else:
+                # 4. Activate account on first registration, then log the user in
+                purpose = request.session.pop('otp_purpose', 'login')
+                request.session.pop('pending_user_id', None)
+                if purpose == 'register':
+                    AuthService.activate(user)
+                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                return redirect('mirror:index')
 
     return render(request, 'accounts/verify.html', {
         'email': user.email,
@@ -146,10 +154,12 @@ def resend_otp(request: HttpRequest) -> JsonResponse:
 
     try:
         AuthService.send_otp(user)
-    except RuntimeError:
-        return JsonResponse({'ok': False, 'error': str(_('Не удалось отправить код'))})
+    except OTPCooldownError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc), 'seconds_remaining': exc.seconds_remaining})
+    except EmailDeliveryError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)})
 
-    lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
+    lifetime: int = settings.OTP_LIFETIME_SECONDS
     return JsonResponse({'ok': True, 'seconds': lifetime})
 
 
@@ -170,6 +180,16 @@ class AsyncPasswordResetView(DjangoPasswordResetView):
     """PasswordResetView that sends the reset email in a background thread."""
 
     def form_valid(self, form: PasswordResetForm) -> HttpResponseRedirect:  # type: ignore[override]
+        """Send the password reset email in a background thread and redirect.
+
+        Args:
+            form: Validated PasswordResetForm.
+
+        Returns:
+            Redirect to the success URL, issued immediately without waiting
+            for email delivery.
+        """
+        # 1. Collect the options Django's PasswordResetForm.save needs
         opts = {
             'use_https': self.request.is_secure(),
             'token_generator': self.token_generator,
@@ -180,11 +200,14 @@ class AsyncPasswordResetView(DjangoPasswordResetView):
             'html_email_template_name': self.html_email_template_name,
             'extra_email_context': self.extra_email_context,
         }
+        # 2. Capture the active language so the worker thread renders the same locale
         lang = get_language() or 'ru'
 
+        # 3. Send the email off the request thread
         def _run() -> None:
             activate(lang)
             form.save(**opts)
 
+        # 4. Fire-and-forget; the redirect does not wait for delivery
         threading.Thread(target=_run, daemon=True).start()
         return HttpResponseRedirect(self.get_success_url())

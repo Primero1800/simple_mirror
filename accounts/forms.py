@@ -11,6 +11,22 @@ class RegisterForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput, label=_('Пароль'), min_length=8)
     password2 = forms.CharField(widget=forms.PasswordInput, label=_('Повторите пароль'))
 
+    def clean_password(self) -> str:
+        """Require at least one letter and one digit in the password.
+
+        Returns:
+            The validated password value.
+
+        Raises:
+            ValidationError: If the password contains no letters or no digits.
+        """
+        password: str = self.cleaned_data.get('password', '')
+        if not any(c.isalpha() for c in password):
+            raise forms.ValidationError(_('Пароль должен содержать хотя бы одну букву'))
+        if not any(c.isdigit() for c in password):
+            raise forms.ValidationError(_('Пароль должен содержать хотя бы одну цифру'))
+        return password
+
     def clean(self) -> dict[str, Any]:
         """Validate that both password fields contain the same value.
 

@@ -43,7 +43,7 @@ class OTPRepository:
         Returns:
             Latest OTPCode or None if no records exist.
         """
-        return OTPCode.objects.filter(user=user).first()
+        return OTPCode.objects.filter(user=user).order_by('-created_at').first()
 
     @staticmethod
     def delete(otp: OTPCode) -> None:

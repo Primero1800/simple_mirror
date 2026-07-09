@@ -2,6 +2,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
+from accounts.exceptions import EmailDeliveryError
+
 EMAIL = 'accounts.services.email_service'
 
 
@@ -29,32 +31,32 @@ class TestSendOtp:
             t.sleep.assert_called_once_with(0.5 * (2 ** 0))
 
     def test_raises_after_all_retries_exhausted(self, settings):
-        settings.EMAIL_OTP_MAX_RETRIES = 2
-        settings.EMAIL_OTP_RETRY_DELAY = 0.5
+        settings.EMAIL_MAX_RETRIES = 2
+        settings.EMAIL_RETRY_DELAY = 0.5
         with patch(f'{EMAIL}.send_mail', side_effect=Exception('boom')), \
              patch(f'{EMAIL}.time'):
             from accounts.services.email_service import EmailService
-            with pytest.raises(RuntimeError, match='Failed to send OTP'):
+            with pytest.raises(EmailDeliveryError):
                 EmailService.send_otp('a@b.com', '1111')
 
     def test_no_sleep_after_last_attempt(self, settings):
-        settings.EMAIL_OTP_MAX_RETRIES = 3
-        settings.EMAIL_OTP_RETRY_DELAY = 0.5
+        settings.EMAIL_MAX_RETRIES = 3
+        settings.EMAIL_RETRY_DELAY = 0.5
         with patch(f'{EMAIL}.send_mail', side_effect=Exception('boom')), \
              patch(f'{EMAIL}.time') as t:
             from accounts.services.email_service import EmailService
-            with pytest.raises(RuntimeError):
+            with pytest.raises(EmailDeliveryError):
                 EmailService.send_otp('a@b.com', '2222')
             # sleep is called max_retries-1 times (not after the last attempt)
             assert t.sleep.call_count == 2
 
     def test_backoff_doubles_each_attempt(self, settings):
-        settings.EMAIL_OTP_MAX_RETRIES = 3
-        settings.EMAIL_OTP_RETRY_DELAY = 0.5
+        settings.EMAIL_MAX_RETRIES = 3
+        settings.EMAIL_RETRY_DELAY = 0.5
         with patch(f'{EMAIL}.send_mail', side_effect=Exception('boom')), \
              patch(f'{EMAIL}.time') as t:
             from accounts.services.email_service import EmailService
-            with pytest.raises(RuntimeError):
+            with pytest.raises(EmailDeliveryError):
                 EmailService.send_otp('a@b.com', '3333')
             # attempt 0 → 0.5s, attempt 1 → 1.0s
             calls = [c.args[0] for c in t.sleep.call_args_list]

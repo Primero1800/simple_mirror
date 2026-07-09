@@ -19,3 +19,9 @@ def test_index_uses_correct_template(client):
 def test_nonexistent_url_returns_404(client):
     response = client.get('/nonexistent/')
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_favicon_returns_no_content(client):
+    response = client.get('/favicon.ico')
+    assert response.status_code == 204

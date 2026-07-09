@@ -1,13 +1,19 @@
+import logging
 import secrets
 from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.db import transaction
+from django.utils.translation import gettext_lazy as _
 
+from accounts.exceptions import OTPBlockedError, OTPCooldownError, UserAlreadyExistsError
 from accounts.models import OTPCode, User
 from accounts.repositories.otp_repo import OTPRepository
 from accounts.repositories.user_repo import UserRepository
 from accounts.services.email_service import EmailService
+from accounts.services.otp_cache import OTPCacheService
+
+logger = logging.getLogger(__name__)
 
 
 class AuthService:
@@ -31,7 +37,7 @@ class AuthService:
         # 2. Generate a cryptographically secure 4-digit code
         code = f'{secrets.randbelow(10000):04d}'
         # 3. Compute expiry timestamp from settings
-        lifetime: int = getattr(settings, 'OTP_LIFETIME_SECONDS', 60)
+        lifetime: int = settings.OTP_LIFETIME_SECONDS
         expires_at = datetime.now() + timedelta(seconds=lifetime)
         # 4. Persist and return the new record
         return OTPRepository.create(user=user, code=code, expires_at=expires_at)
@@ -41,32 +47,30 @@ class AuthService:
         """Register a new user and trigger OTP email delivery.
 
         If an *inactive* account with the same email already exists (e.g. a
-        previous registration where delivery failed), it is atomically replaced.
+        previous registration that was never verified), the existing record is
+        reused with the new password rather than deleted and recreated.
 
         Args:
             email: New user's email address.
             password: Plain-text password (hashed before storage).
 
         Returns:
-            Newly created, inactive User.
+            Inactive User (new or reused).
 
         Raises:
-            ValueError: If an *active* account with *email* already exists.
+            UserAlreadyExistsError: If an *active* account with *email* already exists.
         """
-        # 1. Open an atomic block covering all DB writes
         with transaction.atomic():
-            # 2. Handle duplicate email: reject active, replace inactive
             existing = UserRepository.get_by_email(email)
             if existing is not None:
                 if existing.is_active:
-                    raise ValueError('A user with this email already exists')
-                existing.delete()  # cascades to OTPCode rows
-
-            # 3. Create inactive user and fresh OTP
-            user = UserRepository.create(email=email, password=password, is_active=False)
+                    logger.warning('Registration attempt with already active email: %s', email)
+                    raise UserAlreadyExistsError(_('Пользователь с таким email уже существует'))
+                user = UserRepository.update_password(existing, password)
+            else:
+                user = UserRepository.create(email=email, password=password, is_active=False)
             otp = AuthService._create_otp(user)
 
-        # 4. Dispatch email outside the transaction (non-blocking)
         EmailService.send_otp_async(email=user.email, code=otp.code)
         return user
 
@@ -78,10 +82,19 @@ class AuthService:
 
         Args:
             user: The user who needs a new OTP.
+
+        Raises:
+            OTPCooldownError: When the resend cooldown window is still active.
         """
+        ttl = OTPCacheService.get_resend_cooldown_ttl(user.email)
+        if ttl > 0:
+            logger.warning('OTP resend cooldown active for %s: %ds remaining', user.email, ttl)
+            raise OTPCooldownError(ttl)
+
         with transaction.atomic():
             otp = AuthService._create_otp(user)
         EmailService.send_otp_async(email=user.email, code=otp.code)
+        OTPCacheService.set_resend_cooldown(user.email)
 
     @staticmethod
     def verify_otp(user: User, code: str) -> bool:
@@ -93,12 +106,28 @@ class AuthService:
 
         Returns:
             True if the code matches and has not expired; False otherwise.
+
+        Raises:
+            OTPBlockedError: When the email is temporarily blocked due to too
+                many failed attempts.
         """
+        if OTPCacheService.is_blocked(user.email):
+            logger.warning('OTP verify blocked for %s', user.email)
+            raise OTPBlockedError(_('Превышено число попыток. Повторите позже.'))
+
         otp = OTPRepository.get_latest(user)
         if not otp or not otp.is_valid():
             return False
+
         if otp.code != code:
+            attempts = OTPCacheService.record_failed_attempt(user.email)
+            max_attempts: int = settings.OTP_MAX_ATTEMPTS
+            if max_attempts > 0 and attempts >= max_attempts:
+                logger.warning('OTP blocked after %d failed attempts for %s', attempts, user.email)
+                raise OTPBlockedError(_('Превышено число попыток. Повторите позже.'))
             return False
+
+        OTPCacheService.reset_attempts(user.email)
         OTPRepository.delete(otp)
         return True
 
