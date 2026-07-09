@@ -42,6 +42,24 @@ class TestRegisterForm:
         assert not form.is_valid()
         assert len(form.errors) > 0
 
+    def test_password_without_letter_fails(self):
+        form = RegisterForm(data={
+            'email': 'user@example.com',
+            'password': '12345678',
+            'password2': '12345678',
+        })
+        assert not form.is_valid()
+        assert 'password' in form.errors
+
+    def test_password_without_digit_fails(self):
+        form = RegisterForm(data={
+            'email': 'user@example.com',
+            'password': 'onlyletters',
+            'password2': 'onlyletters',
+        })
+        assert not form.is_valid()
+        assert 'password' in form.errors
+
 
 class TestLoginForm:
     def test_valid_data_passes(self):

@@ -147,7 +147,7 @@ EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False').lower() == 'true'
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'noreply@example.com'
-EMAIL_TIMEOUT = 5
+EMAIL_TIMEOUT: int = int(os.environ.get('EMAIL_TIMEOUT', 5))
 
 EMAIL_MAX_RETRIES: int = int(os.environ.get('EMAIL_MAX_RETRIES', 3))
 EMAIL_RETRY_DELAY: float = float(os.environ.get('EMAIL_RETRY_DELAY', 0.5))
