@@ -1,12 +1,18 @@
 """Unit tests for HealthCheckService — DB connection is mocked."""
 
+import time
+
 import pytest
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
 from django.db import OperationalError
 
-from healthcheck.exceptions import DBHealthCheckError, QdrantHealthCheckError
+from healthcheck.exceptions import (
+    DBHealthCheckError,
+    HealthCheckError,
+    QdrantHealthCheckError,
+)
 from healthcheck.services.health_check_service import HealthCheckService
 
 SERVICE = "healthcheck.services.health_check_service"
@@ -135,3 +141,69 @@ class TestCheckQdrant:
         with patch(f"{SERVICE}.get_qdrant_client", side_effect=ConnectionError("down")):
             with pytest.raises(QdrantHealthCheckError):
                 HealthCheckService.check_qdrant()
+
+
+class TestCheck:
+    """Tests for the check() orchestrator — db and qdrant run in parallel threads."""
+
+    def test_passes_when_both_components_healthy(self):
+        with (
+            patch.object(HealthCheckService, "check_db", return_value=None),
+            patch.object(HealthCheckService, "check_qdrant", return_value=None),
+        ):
+            HealthCheckService.check()  # must not raise
+
+    def test_raises_with_db_detail_when_db_unhealthy(self):
+        with (
+            patch.object(
+                HealthCheckService,
+                "check_db",
+                side_effect=DBHealthCheckError("DB unreachable"),
+            ),
+            patch.object(HealthCheckService, "check_qdrant", return_value=None),
+        ):
+            with pytest.raises(HealthCheckError, match="db: DB unreachable"):
+                HealthCheckService.check()
+
+    def test_raises_with_qdrant_detail_when_qdrant_unhealthy(self):
+        with (
+            patch.object(HealthCheckService, "check_db", return_value=None),
+            patch.object(
+                HealthCheckService,
+                "check_qdrant",
+                side_effect=QdrantHealthCheckError("Qdrant unreachable"),
+            ),
+        ):
+            with pytest.raises(HealthCheckError, match="qdrant: Qdrant unreachable"):
+                HealthCheckService.check()
+
+    def test_raises_with_both_details_when_both_unhealthy(self):
+        with (
+            patch.object(
+                HealthCheckService,
+                "check_db",
+                side_effect=DBHealthCheckError("DB unreachable"),
+            ),
+            patch.object(
+                HealthCheckService,
+                "check_qdrant",
+                side_effect=QdrantHealthCheckError("Qdrant unreachable"),
+            ),
+        ):
+            with pytest.raises(HealthCheckError) as exc_info:
+                HealthCheckService.check()
+            assert "db: DB unreachable" in str(exc_info.value)
+            assert "qdrant: Qdrant unreachable" in str(exc_info.value)
+
+    def test_raises_timeout_detail_when_a_check_hangs(self, settings):
+        settings.HEALTH_CHECK_TIMEOUT_SEC = 0.05
+
+        def _hang(*args: object, **kwargs: object) -> None:
+            time.sleep(0.2)
+
+        with (
+            patch.object(HealthCheckService, "check_db", side_effect=_hang),
+            patch.object(HealthCheckService, "check_qdrant", return_value=None),
+        ):
+            with pytest.raises(HealthCheckError, match="db: timeout"):
+                HealthCheckService.check()

@@ -5,7 +5,11 @@ from concurrent.futures import TimeoutError as FutureTimeout
 from django.conf import settings
 from django.db import OperationalError, connection, transaction
 
-from healthcheck.exceptions import DBHealthCheckError, HealthCheckError, QdrantHealthCheckError
+from healthcheck.exceptions import (
+    DBHealthCheckError,
+    HealthCheckError,
+    QdrantHealthCheckError,
+)
 from simple_mirror.infrastructure.qdrant_client import get_qdrant_client
 
 logger = logging.getLogger(__name__)
