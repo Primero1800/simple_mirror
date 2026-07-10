@@ -65,6 +65,14 @@ class OTPCodeAdmin(admin.ModelAdmin):
     actions_on_bottom = True
 
     def is_valid(self, obj: OTPCode) -> bool:
+        """Proxy OTPCode.is_valid() for the changelist boolean column.
+
+        Args:
+            obj: The OTPCode row being rendered.
+
+        Returns:
+            True if the code has not yet expired.
+        """
         return obj.is_valid()
 
     is_valid.boolean = True  # type: ignore[attr-defined]
