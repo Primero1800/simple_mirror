@@ -80,7 +80,7 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = not DEBUG
 
 STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "public"
+STATIC_ROOT = BASE_DIR / "public" / "static"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
