@@ -1,3 +1,4 @@
+import atexit
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -15,6 +16,24 @@ from simple_mirror.infrastructure.qdrant_client import get_qdrant_client
 logger = logging.getLogger(__name__)
 
 _RETRIES = 3
+_executor: ThreadPoolExecutor | None = None
+
+
+def _get_executor() -> ThreadPoolExecutor:
+    """Return the shared thread-pool, creating it lazily on first use."""
+    global _executor
+    if _executor is None:
+        _executor = ThreadPoolExecutor(max_workers=2)
+    return _executor
+
+
+def _shutdown_executor() -> None:
+    """Drain the pool on process exit."""
+    if _executor is not None:
+        _executor.shutdown(wait=False)
+
+
+atexit.register(_shutdown_executor)
 
 
 class HealthCheckService:
@@ -26,20 +45,20 @@ class HealthCheckService:
             HealthCheckError: if any component is unhealthy or times out.
         """
         timeout = settings.HEALTH_CHECK_TIMEOUT_SEC
+        executor = _get_executor()
         errors: list[str] = []
 
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            futures = {
-                "db": executor.submit(HealthCheckService.check_db),
-                "qdrant": executor.submit(HealthCheckService.check_qdrant),
-            }
-            for key, future in futures.items():
-                try:
-                    future.result(timeout=timeout)
-                except FutureTimeout:
-                    errors.append(f"{key}: timeout")
-                except (DBHealthCheckError, QdrantHealthCheckError) as exc:
-                    errors.append(f"{key}: {exc}")
+        futures = {
+            "db": executor.submit(HealthCheckService.check_db),
+            "qdrant": executor.submit(HealthCheckService.check_qdrant),
+        }
+        for key, future in futures.items():
+            try:
+                future.result(timeout=timeout)
+            except FutureTimeout:
+                errors.append(f"{key}: timeout")
+            except (DBHealthCheckError, QdrantHealthCheckError) as exc:
+                errors.append(f"{key}: {exc}")
 
         if errors:
             raise HealthCheckError("; ".join(errors))
