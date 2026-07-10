@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from healthcheck.exceptions import DBHealthCheckError
+from healthcheck.exceptions import DBHealthCheckError, QdrantHealthCheckError
 from healthcheck.services.health_check_service import HealthCheckService
 
 
@@ -35,6 +35,13 @@ class HealthViewSet(viewsets.ViewSet):
             checks["db"] = "ok"
         except DBHealthCheckError as exc:
             checks["db"] = str(exc)
+            ok = False
+
+        try:
+            HealthCheckService.check_qdrant()
+            checks["qdrant"] = "ok"
+        except QdrantHealthCheckError as exc:
+            checks["qdrant"] = str(exc)
             ok = False
 
         return Response(

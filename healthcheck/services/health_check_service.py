@@ -3,7 +3,8 @@ import logging
 from django.conf import settings
 from django.db import OperationalError, connection, transaction
 
-from healthcheck.exceptions import DBHealthCheckError
+from healthcheck.exceptions import DBHealthCheckError, QdrantHealthCheckError
+from simple_mirror.infrastructure.qdrant_client import get_qdrant_client
 
 logger = logging.getLogger(__name__)
 
@@ -51,3 +52,20 @@ class HealthCheckService:
             "DB health check failed after %d attempts", _RETRIES, exc_info=last_exc
         )
         raise DBHealthCheckError("DB unreachable") from last_exc
+
+    @staticmethod
+    def check_qdrant() -> None:
+        """Check Qdrant connectivity by verifying the collection exists.
+
+        Raises:
+            QdrantHealthCheckError: if Qdrant is unreachable or the collection is missing.
+        """
+        try:
+            exists = get_qdrant_client().collection_exists(settings.QDRANT_COLLECTION)
+        except Exception as exc:
+            logger.critical("Qdrant health check failed", exc_info=exc)
+            raise QdrantHealthCheckError("Qdrant unreachable") from exc
+        if not exists:
+            raise QdrantHealthCheckError(
+                f"Collection '{settings.QDRANT_COLLECTION}' not found"
+            )

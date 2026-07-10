@@ -28,6 +28,12 @@ jobs:
       REDIS_HOST: 'localhost'
       REDIS_PORT: '6379'
       HEALTH_CHECK_TIMEOUT_SEC: '5'
+      QDRANT_URL: 'http://localhost:6333'
+      QDRANT_API_KEY: ''
+      QDRANT_COLLECTION: 'talks'
+      QDRANT_TIMEOUT: '60'
+      VECTOR_SEARCH_MIN_SCORE: '0.85'
+      VECTOR_DB_VECTOR_SIZE: '1024'
 
     steps:
       - uses: actions/checkout@v4

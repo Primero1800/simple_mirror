@@ -5,3 +5,4 @@ mysqlclient>=2.2
 django-redis>=5.4,<7
 whitenoise>=6.0
 djangorestframework>=3.14
+qdrant-client==1.18.0
