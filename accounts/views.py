@@ -9,7 +9,7 @@ from django.shortcuts import redirect, render
 from django.utils.translation import get_language, activate, gettext_lazy as _
 from django.views.decorators.http import require_POST
 
-from accounts.exceptions import EmailDeliveryError, OTPBlockedError, OTPCooldownError, UserAlreadyExistsError
+from accounts.exceptions import EmailDeliveryError, OTPBlockedError, OTPCooldownError, OTPExpiredError, UserAlreadyExistsError
 from accounts.forms import LoginForm, RegisterForm
 from accounts.services.auth_service import AuthService
 
@@ -114,9 +114,11 @@ def verify_otp(request: HttpRequest) -> HttpResponse:
             verified = AuthService.verify_otp(user, code)
         except OTPBlockedError as exc:
             error = str(exc)
+        except OTPExpiredError as exc:
+            error = str(exc)
         else:
             if not verified:
-                error = str(_('Неверный или истёкший код'))
+                error = str(_('Неверный код.'))
             else:
                 # 4. Activate account on first registration, then log the user in
                 purpose = request.session.pop('otp_purpose', 'login')

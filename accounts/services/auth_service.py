@@ -6,7 +6,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-from accounts.exceptions import OTPBlockedError, OTPCooldownError, UserAlreadyExistsError
+from accounts.exceptions import OTPBlockedError, OTPCooldownError, OTPExpiredError, UserAlreadyExistsError
 from accounts.models import OTPCode, User
 from accounts.repositories.otp_repo import OTPRepository
 from accounts.repositories.user_repo import UserRepository
@@ -117,7 +117,7 @@ class AuthService:
 
         otp = OTPRepository.get_latest(user)
         if not otp or not otp.is_valid():
-            return False
+            raise OTPExpiredError(_('Код истёк. Запросите новый.'))
 
         if otp.code != code:
             attempts = OTPCacheService.record_failed_attempt(user.email)

@@ -17,6 +17,10 @@ class OTPBlockedError(AccountsError):
     """Raised when an email is temporarily blocked due to too many failed OTP attempts."""
 
 
+class OTPExpiredError(AccountsError):
+    """Raised when there is no active OTP or the existing one has expired."""
+
+
 class OTPCooldownError(AccountsError):
     """Raised when a new OTP cannot be sent because the resend cooldown is still active.
 
