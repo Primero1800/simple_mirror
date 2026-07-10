@@ -159,6 +159,14 @@ REST_FRAMEWORK = {
 # ── Health check ──────────────────────────────────────────────────────────────
 HEALTH_CHECK_TIMEOUT_SEC: int = int(os.environ.get("HEALTH_CHECK_TIMEOUT_SEC", 5))
 
+# ── Qdrant ─────────────────────────────────────────────────────────────────────
+QDRANT_URL: str = os.environ.get("QDRANT_URL", "")
+QDRANT_API_KEY: str = os.environ.get("QDRANT_API_KEY", "")
+QDRANT_COLLECTION: str = os.environ.get("QDRANT_COLLECTION", "talks")
+QDRANT_TIMEOUT: int = int(os.environ.get("QDRANT_TIMEOUT", 60))
+VECTOR_SEARCH_MIN_SCORE: float = float(os.environ.get("VECTOR_SEARCH_MIN_SCORE", 0.85))
+VECTOR_DB_VECTOR_SIZE: int = int(os.environ.get("VECTOR_DB_VECTOR_SIZE", 1024))
+
 # ── Login brute-force ──────────────────────────────────────────────────────────
 LOGIN_MAX_ATTEMPTS: int = int(os.environ.get("LOGIN_MAX_ATTEMPTS", 5))
 LOGIN_ATTEMPTS_KEY_PREFIX: str = "login_attempts"

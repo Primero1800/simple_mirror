@@ -1,9 +1,8 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-from healthcheck.views import HealthView
+from healthcheck.views import HealthViewSet
 
-app_name = "healthcheck"
+router = DefaultRouter()
+router.register("health", HealthViewSet, basename="health")
 
-urlpatterns = [
-    path("", HealthView.as_view(), name="health"),
-]
+urlpatterns = router.urls
