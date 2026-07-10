@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-10 04:11-0500\n"
+"POT-Creation-Date: 2026-07-10 04:37-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: accounts/exceptions.py:34
+#: accounts/exceptions.py:38
 #, python-format
 msgid "Повторите отправку через %(sec)s сек."
 msgstr "Resend in %(sec)s sec."
@@ -50,17 +50,21 @@ msgstr "Password must contain at least one digit."
 msgid "Пароли не совпадают"
 msgstr "Passwords do not match"
 
-#: accounts/services/auth_service.py:68
+#: accounts/services/auth_service.py:69
 msgid "Пользователь с таким email уже существует"
 msgstr "An account with this email already exists."
 
-#: accounts/services/auth_service.py:116 accounts/services/auth_service.py:127
+#: accounts/services/auth_service.py:117 accounts/services/auth_service.py:128
 msgid "Превышено число попыток. Повторите позже."
 msgstr "Too many attempts. Please try again later."
 
-#: accounts/services/auth_service.py:120
+#: accounts/services/auth_service.py:121
 msgid "Код истёк. Запросите новый."
 msgstr "Code expired. Request a new one."
+
+#: accounts/services/auth_service.py:193 accounts/services/auth_service.py:204
+msgid "Превышено число попыток входа. Повторите позже."
+msgstr "Too many login attempts. Please try again later."
 
 #: accounts/services/email_service.py:56
 msgid "Mirror — код подтверждения"
@@ -260,19 +264,19 @@ msgstr "Sending…"
 msgid "Ошибка. Попробуйте ещё раз."
 msgstr "Error. Please try again."
 
-#: accounts/views.py:81
+#: accounts/views.py:85
 msgid "Неверный email или пароль"
 msgstr "Invalid email or password"
 
-#: accounts/views.py:121
+#: accounts/views.py:125
 msgid "Неверный код."
 msgstr "Invalid code."
 
-#: accounts/views.py:151
+#: accounts/views.py:155
 msgid "Сессия истекла"
 msgstr "Session expired"
 
-#: accounts/views.py:155
+#: accounts/views.py:159
 msgid "Пользователь не найден"
 msgstr "User not found"
 

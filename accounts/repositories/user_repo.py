@@ -81,5 +81,5 @@ class UserRepository:
             The same User after save().
         """
         user.set_password(password)
-        user.save(update_fields=['password'])
+        user.save(update_fields=["password"])
         return user

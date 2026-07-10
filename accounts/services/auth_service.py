@@ -6,11 +6,18 @@ from django.conf import settings
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 
-from accounts.exceptions import OTPBlockedError, OTPCooldownError, OTPExpiredError, UserAlreadyExistsError
+from accounts.exceptions import (
+    LoginBlockedError,
+    OTPBlockedError,
+    OTPCooldownError,
+    OTPExpiredError,
+    UserAlreadyExistsError,
+)
 from accounts.models import OTPCode, User
 from accounts.repositories.otp_repo import OTPRepository
 from accounts.repositories.user_repo import UserRepository
 from accounts.services.email_service import EmailService
+from accounts.services.login_cache import LoginCacheService
 from accounts.services.otp_cache import OTPCacheService
 
 logger = logging.getLogger(__name__)
@@ -35,7 +42,7 @@ class AuthService:
         # 1. Invalidate all previous codes for this user
         OTPRepository.delete_for_user(user)
         # 2. Generate a cryptographically secure 4-digit code
-        code = f'{secrets.randbelow(10000):04d}'
+        code = f"{secrets.randbelow(10000):04d}"
         # 3. Compute expiry timestamp from settings
         lifetime: int = settings.OTP_LIFETIME_SECONDS
         expires_at = datetime.now() + timedelta(seconds=lifetime)
@@ -64,11 +71,17 @@ class AuthService:
             existing = UserRepository.get_by_email(email)
             if existing is not None:
                 if existing.is_active:
-                    logger.warning('Registration attempt with already active email: %s', email)
-                    raise UserAlreadyExistsError(_('Пользователь с таким email уже существует'))
+                    logger.warning(
+                        "Registration attempt with already active email: %s", email
+                    )
+                    raise UserAlreadyExistsError(
+                        _("Пользователь с таким email уже существует")
+                    )
                 user = UserRepository.update_password(existing, password)
             else:
-                user = UserRepository.create(email=email, password=password, is_active=False)
+                user = UserRepository.create(
+                    email=email, password=password, is_active=False
+                )
             otp = AuthService._create_otp(user)
 
         EmailService.send_otp_async(email=user.email, code=otp.code)
@@ -88,7 +101,9 @@ class AuthService:
         """
         ttl = OTPCacheService.get_resend_cooldown_ttl(user.email)
         if ttl > 0:
-            logger.warning('OTP resend cooldown active for %s: %ds remaining', user.email, ttl)
+            logger.warning(
+                "OTP resend cooldown active for %s: %ds remaining", user.email, ttl
+            )
             raise OTPCooldownError(ttl)
 
         with transaction.atomic():
@@ -112,19 +127,21 @@ class AuthService:
                 many failed attempts.
         """
         if OTPCacheService.is_blocked(user.email):
-            logger.warning('OTP verify blocked for %s', user.email)
-            raise OTPBlockedError(_('Превышено число попыток. Повторите позже.'))
+            logger.warning("OTP verify blocked for %s", user.email)
+            raise OTPBlockedError(_("Превышено число попыток. Повторите позже."))
 
         otp = OTPRepository.get_latest(user)
         if not otp or not otp.is_valid():
-            raise OTPExpiredError(_('Код истёк. Запросите новый.'))
+            raise OTPExpiredError(_("Код истёк. Запросите новый."))
 
         if otp.code != code:
             attempts = OTPCacheService.record_failed_attempt(user.email)
             max_attempts: int = settings.OTP_MAX_ATTEMPTS
             if max_attempts > 0 and attempts >= max_attempts:
-                logger.warning('OTP blocked after %d failed attempts for %s', attempts, user.email)
-                raise OTPBlockedError(_('Превышено число попыток. Повторите позже.'))
+                logger.warning(
+                    "OTP blocked after %d failed attempts for %s", attempts, user.email
+                )
+                raise OTPBlockedError(_("Превышено число попыток. Повторите позже."))
             return False
 
         OTPCacheService.reset_attempts(user.email)
@@ -182,8 +199,29 @@ class AuthService:
         Returns:
             The User when credentials are valid and the account is active;
             None otherwise.
+
+        Raises:
+            LoginBlockedError: When the email is temporarily blocked due to too
+                many failed login attempts.
         """
+        if LoginCacheService.is_blocked(email):
+            logger.warning("Login blocked for %s", email)
+            raise LoginBlockedError(
+                _("Превышено число попыток входа. Повторите позже.")
+            )
+
         user = UserRepository.get_by_email(email)
         if user and user.check_password(password) and user.is_active:
+            LoginCacheService.reset_attempts(email)
             return user
+
+        attempts = LoginCacheService.record_failed_attempt(email)
+        max_attempts: int = settings.LOGIN_MAX_ATTEMPTS
+        if max_attempts > 0 and attempts >= max_attempts:
+            logger.warning(
+                "Login blocked after %d failed attempts for %s", attempts, email
+            )
+            raise LoginBlockedError(
+                _("Превышено число попыток входа. Повторите позже.")
+            )
         return None

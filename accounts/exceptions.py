@@ -21,6 +21,10 @@ class OTPExpiredError(AccountsError):
     """Raised when there is no active OTP or the existing one has expired."""
 
 
+class LoginBlockedError(AccountsError):
+    """Raised when an email is temporarily blocked due to too many failed login attempts."""
+
+
 class OTPCooldownError(AccountsError):
     """Raised when a new OTP cannot be sent because the resend cooldown is still active.
 
@@ -31,5 +35,5 @@ class OTPCooldownError(AccountsError):
     def __init__(self, seconds_remaining: int) -> None:
         self.seconds_remaining = seconds_remaining
         super().__init__(
-            _('Повторите отправку через %(sec)s сек.') % {'sec': seconds_remaining}
+            _("Повторите отправку через %(sec)s сек.") % {"sec": seconds_remaining}
         )

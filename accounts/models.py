@@ -5,10 +5,12 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
 
-class UserManager(BaseUserManager['User']):
+class UserManager(BaseUserManager["User"]):
     """Custom manager that uses email as the unique identifier instead of username."""
 
-    def create_user(self, email: str, password: str | None = None, **extra: object) -> 'User':
+    def create_user(
+        self, email: str, password: str | None = None, **extra: object
+    ) -> "User":
         """Create and persist a regular user account.
 
         Args:
@@ -24,7 +26,7 @@ class UserManager(BaseUserManager['User']):
         """
         # 1. Reject blank email early to give a clear error message
         if not email:
-            raise ValueError('Email is required')
+            raise ValueError("Email is required")
         # 2. Normalise the domain part of the email (lowercased)
         user = self.model(email=self.normalize_email(email), **extra)
         # 3. Hash the password before storing
@@ -33,7 +35,9 @@ class UserManager(BaseUserManager['User']):
         user.save(using=self._db)
         return user  # type: ignore[return-value]
 
-    def create_superuser(self, email: str, password: str | None = None, **extra: object) -> 'User':
+    def create_superuser(
+        self, email: str, password: str | None = None, **extra: object
+    ) -> "User":
         """Create a superuser with staff and superuser flags set by default.
 
         Args:
@@ -44,9 +48,9 @@ class UserManager(BaseUserManager['User']):
         Returns:
             Saved superuser instance.
         """
-        extra.setdefault('is_staff', True)
-        extra.setdefault('is_superuser', True)
-        extra.setdefault('is_active', True)
+        extra.setdefault("is_staff", True)
+        extra.setdefault("is_superuser", True)
+        extra.setdefault("is_active", True)
         return self.create_user(email, password, **extra)
 
 
@@ -56,7 +60,7 @@ class User(AbstractUser):
     username = None  # type: ignore[assignment]
     email = models.EmailField(unique=True)
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS: ClassVar[list[str]] = []
     objects: ClassVar[UserManager] = UserManager()  # type: ignore[assignment]
 
@@ -70,14 +74,14 @@ class OTPCode(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='otp_codes',
+        related_name="otp_codes",
     )
     code = models.CharField(max_length=4)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     def is_valid(self) -> bool:
         """Return True if the code has not yet expired."""

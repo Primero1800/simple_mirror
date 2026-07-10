@@ -5,44 +5,51 @@ on:
     branches: [main]
 
 jobs:
-  lint:
+  lint-and-test:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install Poetry
-        run: pip install poetry
-      - name: Install dependencies
-        run: poetry install
-      - name: Lint
-        run: poetry run ruff check .
 
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install Poetry
-        run: pip install poetry
-      - name: Install dependencies
-        run: poetry install
-      - name: Type check
-        run: poetry run mypy mirror/ simple_mirror/ accounts/
+    env:
+      DEBUG: 'True'
+      SECRET_KEY: 'ci-secret-key-not-for-production'
+      OTP_LIFETIME_SECONDS: '60'
+      OTP_MAX_ATTEMPTS: '3'
+      OTP_RESEND_COOLDOWN_SECONDS: '30'
+      LOGIN_MAX_ATTEMPTS: '5'
+      EMAIL_MAX_RETRIES: '1'
+      EMAIL_RETRY_DELAY: '0'
+      EMAIL_THREAD_POOL_SIZE: '1'
+      EMAIL_TIMEOUT: '5'
+      EMAIL_HOST: 'localhost'
+      EMAIL_PORT: '25'
+      EMAIL_USE_TLS: 'False'
+      EMAIL_USE_SSL: 'False'
+      EMAIL_HOST_USER: ''
+      EMAIL_HOST_PASSWORD: ''
+      REDIS_HOST: 'localhost'
+      REDIS_PORT: '6379'
 
-  test:
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: '3.12'
+
       - name: Install Poetry
-        run: pip install poetry
+        run: pip install poetry==2.1.3
+
       - name: Install dependencies
-        run: poetry install
-      - name: Test
-        run: poetry run pytest
+        run: poetry install --no-interaction
+
+      - name: Ruff linting
+        run: poetry run ruff check accounts mirror simple_mirror tests
+
+      - name: Ruff formatting
+        run: poetry run ruff format --check accounts mirror simple_mirror tests
+
+      - name: Check types with mypy
+        run: poetry run mypy accounts mirror simple_mirror
+
+      - name: Run tests
+        run: poetry run pytest --cov-report=term-missing:skip-covered --cov=accounts --cov=mirror --cov=simple_mirror tests/

@@ -5,36 +5,44 @@ from accounts.forms import LoginForm, RegisterForm
 
 class TestRegisterForm:
     def test_valid_data_passes(self):
-        form = RegisterForm(data={
-            'email': 'user@example.com',
-            'password': 'Str0ngPass!',
-            'password2': 'Str0ngPass!',
-        })
+        form = RegisterForm(
+            data={
+                "email": "user@example.com",
+                "password": "Str0ngPass!",
+                "password2": "Str0ngPass!",
+            }
+        )
         assert form.is_valid()
 
     def test_password_mismatch_raises_error(self):
-        form = RegisterForm(data={
-            'email': 'user@example.com',
-            'password': 'Str0ngPass!',
-            'password2': 'Different1!',
-        })
+        form = RegisterForm(
+            data={
+                "email": "user@example.com",
+                "password": "Str0ngPass!",
+                "password2": "Different1!",
+            }
+        )
         assert not form.is_valid()
-        assert '__all__' in form.errors
+        assert "__all__" in form.errors
 
     def test_password_too_short_fails(self):
-        form = RegisterForm(data={
-            'email': 'user@example.com',
-            'password': 'short',
-            'password2': 'short',
-        })
+        form = RegisterForm(
+            data={
+                "email": "user@example.com",
+                "password": "short",
+                "password2": "short",
+            }
+        )
         assert not form.is_valid()
 
     def test_invalid_email_fails(self):
-        form = RegisterForm(data={
-            'email': 'not-an-email',
-            'password': 'Str0ngPass!',
-            'password2': 'Str0ngPass!',
-        })
+        form = RegisterForm(
+            data={
+                "email": "not-an-email",
+                "password": "Str0ngPass!",
+                "password2": "Str0ngPass!",
+            }
+        )
         assert not form.is_valid()
 
     def test_missing_fields_fail(self):
@@ -43,33 +51,37 @@ class TestRegisterForm:
         assert len(form.errors) > 0
 
     def test_password_without_letter_fails(self):
-        form = RegisterForm(data={
-            'email': 'user@example.com',
-            'password': '12345678',
-            'password2': '12345678',
-        })
+        form = RegisterForm(
+            data={
+                "email": "user@example.com",
+                "password": "12345678",
+                "password2": "12345678",
+            }
+        )
         assert not form.is_valid()
-        assert 'password' in form.errors
+        assert "password" in form.errors
 
     def test_password_without_digit_fails(self):
-        form = RegisterForm(data={
-            'email': 'user@example.com',
-            'password': 'onlyletters',
-            'password2': 'onlyletters',
-        })
+        form = RegisterForm(
+            data={
+                "email": "user@example.com",
+                "password": "onlyletters",
+                "password2": "onlyletters",
+            }
+        )
         assert not form.is_valid()
-        assert 'password' in form.errors
+        assert "password" in form.errors
 
 
 class TestLoginForm:
     def test_valid_data_passes(self):
-        form = LoginForm(data={'email': 'user@example.com', 'password': 'anypass'})
+        form = LoginForm(data={"email": "user@example.com", "password": "anypass"})
         assert form.is_valid()
 
     def test_invalid_email_fails(self):
-        form = LoginForm(data={'email': 'bad', 'password': 'anypass'})
+        form = LoginForm(data={"email": "bad", "password": "anypass"})
         assert not form.is_valid()
 
     def test_missing_password_fails(self):
-        form = LoginForm(data={'email': 'user@example.com'})
+        form = LoginForm(data={"email": "user@example.com"})
         assert not form.is_valid()

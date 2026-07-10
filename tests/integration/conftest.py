@@ -1,4 +1,5 @@
 """Integration conftest: session helpers for endpoint tests."""
+
 import pytest
 
 
@@ -7,8 +8,8 @@ def pending_session(client, db, inactive_user, otp_for_user):
     """Client with a pending_user_id session (simulates post-credential step)."""
     otp_for_user(inactive_user)
     session = client.session
-    session['pending_user_id'] = inactive_user.pk
-    session['otp_purpose'] = 'register'
+    session["pending_user_id"] = inactive_user.pk
+    session["otp_purpose"] = "register"
     session.save()
     return client, inactive_user
 
