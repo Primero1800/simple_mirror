@@ -31,6 +31,7 @@ COPY simple_mirror/ ./simple_mirror/
 COPY mirror/ ./mirror/
 COPY accounts/ ./accounts/
 COPY locale/ ./locale/
+COPY logging/ ./logging/
 
 EXPOSE 8000
 
