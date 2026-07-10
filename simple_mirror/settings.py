@@ -23,8 +23,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework",
     "accounts",
     "mirror",
+    "healthcheck",
 ]
 
 MIDDLEWARE = [
@@ -143,6 +145,19 @@ OTP_RESEND_COOLDOWN_SECONDS: int = int(os.environ.get("OTP_RESEND_COOLDOWN_SECON
 OTP_CACHE_KEY_SEPARATOR: str = "::"
 OTP_ATTEMPTS_KEY_PREFIX: str = "otp_attempts"
 OTP_COOLDOWN_KEY_PREFIX: str = "otp_cooldown"
+
+# ── DRF ───────────────────────────────────────────────────────────────────────
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+}
+
+# ── Health check ──────────────────────────────────────────────────────────────
+HEALTH_CHECK_TIMEOUT_SEC: int = int(os.environ.get("HEALTH_CHECK_TIMEOUT_SEC", 5))
 
 # ── Login brute-force ──────────────────────────────────────────────────────────
 LOGIN_MAX_ATTEMPTS: int = int(os.environ.get("LOGIN_MAX_ATTEMPTS", 5))
