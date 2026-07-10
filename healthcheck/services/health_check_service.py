@@ -28,7 +28,14 @@ class HealthCheckService:
             try:
                 with transaction.atomic():
                     with connection.cursor() as cursor:
-                        cursor.execute("SET LOCAL statement_timeout = %s", [timeout_ms])
+                        if connection.vendor == "postgresql":
+                            cursor.execute(
+                                "SET LOCAL statement_timeout = %s", [timeout_ms]
+                            )
+                        elif connection.vendor == "mysql":
+                            cursor.execute(
+                                "SET SESSION MAX_EXECUTION_TIME = %s", [timeout_ms]
+                            )
                         cursor.execute("SELECT 1")
                 return
             except OperationalError as exc:
