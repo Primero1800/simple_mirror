@@ -12,6 +12,14 @@ urlpatterns = [
     path("favicon.ico", _favicon),
     path("i18n/", include("django.conf.urls.i18n")),
     path("admin/", admin.site.urls),
+    path(
+        "api/",
+        include(
+            [
+                path("health/", include("healthcheck.urls")),
+            ]
+        ),
+    ),
 ]
 
 urlpatterns += i18n_patterns(

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-10 04:37-0500\n"
+"POT-Creation-Date: 2026-07-10 07:45-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -53,19 +53,19 @@ msgstr ""
 msgid "Пароли не совпадают"
 msgstr ""
 
-#: accounts/services/auth_service.py:69
+#: accounts/services/auth_service.py:78
 msgid "Пользователь с таким email уже существует"
 msgstr ""
 
-#: accounts/services/auth_service.py:117 accounts/services/auth_service.py:128
+#: accounts/services/auth_service.py:131 accounts/services/auth_service.py:144
 msgid "Превышено число попыток. Повторите позже."
 msgstr ""
 
-#: accounts/services/auth_service.py:121
+#: accounts/services/auth_service.py:135
 msgid "Код истёк. Запросите новый."
 msgstr ""
 
-#: accounts/services/auth_service.py:193 accounts/services/auth_service.py:204
+#: accounts/services/auth_service.py:210 accounts/services/auth_service.py:225
 msgid "Превышено число попыток входа. Повторите позже."
 msgstr ""
 
@@ -83,7 +83,7 @@ msgid ""
 "Если вы не запрашивали код — просто проигнорируйте это письмо."
 msgstr ""
 
-#: accounts/services/email_service.py:85
+#: accounts/services/email_service.py:90
 msgid "Не удалось отправить код. Попробуйте позже."
 msgstr ""
 
@@ -258,19 +258,19 @@ msgstr ""
 msgid "Ошибка. Попробуйте ещё раз."
 msgstr ""
 
-#: accounts/views.py:85
+#: accounts/views.py:92
 msgid "Неверный email или пароль"
 msgstr ""
 
-#: accounts/views.py:125
+#: accounts/views.py:132
 msgid "Неверный код."
 msgstr ""
 
-#: accounts/views.py:155
+#: accounts/views.py:168
 msgid "Сессия истекла"
 msgstr ""
 
-#: accounts/views.py:159
+#: accounts/views.py:172
 msgid "Пользователь не найден"
 msgstr ""
 

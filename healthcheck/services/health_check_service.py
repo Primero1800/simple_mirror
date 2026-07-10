@@ -1,7 +1,7 @@
 import logging
 
 from django.conf import settings
-from django.db import OperationalError, connection
+from django.db import OperationalError, connection, transaction
 
 from healthcheck.exceptions import DBHealthCheckError
 
@@ -26,9 +26,10 @@ class HealthCheckService:
 
         for attempt in range(1, _RETRIES + 1):
             try:
-                with connection.cursor() as cursor:
-                    cursor.execute("SET LOCAL statement_timeout = %s", [timeout_ms])
-                    cursor.execute("SELECT 1")
+                with transaction.atomic():
+                    with connection.cursor() as cursor:
+                        cursor.execute("SET LOCAL statement_timeout = %s", [timeout_ms])
+                        cursor.execute("SELECT 1")
                 return
             except OperationalError as exc:
                 last_exc = exc
