@@ -1,4 +1,5 @@
 """Unit conftest: lightweight mock fixtures for service and repository tests."""
+
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
@@ -11,7 +12,7 @@ def mock_user() -> MagicMock:
     """Mock User with sensible defaults."""
     user = MagicMock(spec=User)
     user.pk = 1
-    user.email = 'test@example.com'
+    user.email = "test@example.com"
     user.is_active = True
     user.check_password = MagicMock(return_value=True)
     return user
@@ -27,7 +28,7 @@ def mock_inactive_user(mock_user) -> MagicMock:
 def mock_otp() -> MagicMock:
     """Mock OTPCode that is valid by default."""
     otp = MagicMock(spec=OTPCode)
-    otp.code = '1234'
+    otp.code = "1234"
     otp.expires_at = datetime.now() + timedelta(seconds=60)
     otp.is_valid = MagicMock(return_value=True)
     return otp

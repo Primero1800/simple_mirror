@@ -6,7 +6,7 @@ from django.core.cache import caches
 from django_redis.exceptions import ConnectionInterrupted
 from redis.exceptions import RedisError
 
-_ALIAS = 'otp'
+_ALIAS = "otp"
 _SEP: str = settings.OTP_CACHE_KEY_SEPARATOR
 _ATTEMPTS_PREFIX: str = settings.OTP_ATTEMPTS_KEY_PREFIX
 _COOLDOWN_PREFIX: str = settings.OTP_COOLDOWN_KEY_PREFIX
@@ -39,7 +39,9 @@ class OTPCacheService:
         try:
             attempts = caches[_ALIAS].get(f"{_ATTEMPTS_PREFIX}{_SEP}{email}")
         except (ConnectionInterrupted, RedisError) as exc:
-            logger.error('Redis unavailable in is_blocked: %s: %s', type(exc).__name__, exc)
+            logger.error(
+                "Redis unavailable in is_blocked: %s: %s", type(exc).__name__, exc
+            )
             return False
         max_attempts: int = settings.OTP_MAX_ATTEMPTS
         if max_attempts == 0:
@@ -68,7 +70,11 @@ class OTPCacheService:
             caches[_ALIAS].add(key, 0)  # no-op if key already exists
             return caches[_ALIAS].incr(key)
         except (ConnectionInterrupted, RedisError) as exc:
-            logger.error('Redis unavailable in record_failed_attempt: %s: %s', type(exc).__name__, exc)
+            logger.error(
+                "Redis unavailable in record_failed_attempt: %s: %s",
+                type(exc).__name__,
+                exc,
+            )
             return 0
 
     @staticmethod
@@ -81,7 +87,9 @@ class OTPCacheService:
         try:
             caches[_ALIAS].delete(f"{_ATTEMPTS_PREFIX}{_SEP}{email}")
         except (ConnectionInterrupted, RedisError) as exc:
-            logger.error('Redis unavailable in reset_attempts: %s: %s', type(exc).__name__, exc)
+            logger.error(
+                "Redis unavailable in reset_attempts: %s: %s", type(exc).__name__, exc
+            )
 
     @staticmethod
     def set_resend_cooldown(email: str) -> None:
@@ -98,9 +106,15 @@ class OTPCacheService:
         cooldown: int = settings.OTP_RESEND_COOLDOWN_SECONDS
         expires_at = int(time.time()) + cooldown
         try:
-            caches[_ALIAS].set(f"{_COOLDOWN_PREFIX}{_SEP}{email}", expires_at, timeout=cooldown)
+            caches[_ALIAS].set(
+                f"{_COOLDOWN_PREFIX}{_SEP}{email}", expires_at, timeout=cooldown
+            )
         except (ConnectionInterrupted, RedisError) as exc:
-            logger.error('Redis unavailable in set_resend_cooldown: %s: %s', type(exc).__name__, exc)
+            logger.error(
+                "Redis unavailable in set_resend_cooldown: %s: %s",
+                type(exc).__name__,
+                exc,
+            )
 
     @staticmethod
     def get_resend_cooldown_ttl(email: str) -> int:
@@ -116,7 +130,11 @@ class OTPCacheService:
         try:
             expires_at = caches[_ALIAS].get(f"{_COOLDOWN_PREFIX}{_SEP}{email}")
         except (ConnectionInterrupted, RedisError) as exc:
-            logger.error('Redis unavailable in get_resend_cooldown_ttl: %s: %s', type(exc).__name__, exc)
+            logger.error(
+                "Redis unavailable in get_resend_cooldown_ttl: %s: %s",
+                type(exc).__name__,
+                exc,
+            )
             return 0
         if expires_at is None:
             return 0

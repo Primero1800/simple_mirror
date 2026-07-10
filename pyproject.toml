@@ -18,6 +18,7 @@ pytest-django = "*"
 ruff = "*"
 django-stubs = {extras = ["compatible-mypy"], version = "*"}
 pytest-mock = "^3.15.1"
+pytest-cov = "*"
 testcontainers = {extras = ["postgres"], version = "*"}
 
 [build-system]

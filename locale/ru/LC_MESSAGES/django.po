@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-05 09:35-0500\n"
+"POT-Creation-Date: 2026-07-10 04:37-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -20,27 +20,60 @@ msgstr ""
 "n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
 "(n%100>=11 && n%100<=14)? 2 : 3);\n"
 
-#: accounts/forms.py:11 accounts/forms.py:33
+#: accounts/exceptions.py:38
+#, python-format
+msgid "Повторите отправку через %(sec)s сек."
+msgstr ""
+
+#: accounts/forms.py:13 accounts/forms.py:56
 #: accounts/templates/accounts/login.html:19
 #: accounts/templates/accounts/register.html:25
 msgid "Пароль"
 msgstr ""
 
-#: accounts/forms.py:12
+#: accounts/forms.py:15
+msgid "Пароль должен быть не менее 8 символов."
+msgstr ""
+
+#: accounts/forms.py:17
 #: accounts/templates/accounts/password_reset_confirm.html:16
 #: accounts/templates/accounts/register.html:29
 msgid "Повторите пароль"
 msgstr ""
 
-#: accounts/forms.py:25
+#: accounts/forms.py:30
+msgid "Пароль должен содержать хотя бы одну букву"
+msgstr ""
+
+#: accounts/forms.py:32
+msgid "Пароль должен содержать хотя бы одну цифру"
+msgstr ""
+
+#: accounts/forms.py:48
 msgid "Пароли не совпадают"
 msgstr ""
 
-#: accounts/services/email_service.py:54
-msgid "Mirror — код подтверждения"
+#: accounts/services/auth_service.py:69
+msgid "Пользователь с таким email уже существует"
+msgstr ""
+
+#: accounts/services/auth_service.py:117 accounts/services/auth_service.py:128
+msgid "Превышено число попыток. Повторите позже."
+msgstr ""
+
+#: accounts/services/auth_service.py:121
+msgid "Код истёк. Запросите новый."
+msgstr ""
+
+#: accounts/services/auth_service.py:193 accounts/services/auth_service.py:204
+msgid "Превышено число попыток входа. Повторите позже."
 msgstr ""
 
 #: accounts/services/email_service.py:56
+msgid "Mirror — код подтверждения"
+msgstr ""
+
+#: accounts/services/email_service.py:58
 #, python-format
 msgid ""
 "Ваш код подтверждения: %(code)s\n"
@@ -50,6 +83,10 @@ msgid ""
 "Если вы не запрашивали код — просто проигнорируйте это письмо."
 msgstr ""
 
+#: accounts/services/email_service.py:85
+msgid "Не удалось отправить код. Попробуйте позже."
+msgstr ""
+
 #: accounts/templates/accounts/login.html:3
 msgid "Вход"
 msgstr ""
@@ -57,7 +94,7 @@ msgstr ""
 #: accounts/templates/accounts/login.html:6
 #: accounts/templates/accounts/password_reset_complete.html:10
 #: accounts/templates/accounts/register.html:35
-#: mirror/templates/mirror/index.html:273
+#: mirror/templates/mirror/index.html:301
 msgid "Войти"
 msgstr ""
 
@@ -173,7 +210,7 @@ msgid "Mirror — сброс пароля"
 msgstr ""
 
 #: accounts/templates/accounts/register.html:3
-#: mirror/templates/mirror/index.html:275
+#: mirror/templates/mirror/index.html:303
 msgid "Регистрация"
 msgstr ""
 
@@ -221,50 +258,42 @@ msgstr ""
 msgid "Ошибка. Попробуйте ещё раз."
 msgstr ""
 
-#: accounts/views.py:39 accounts/views.py:72
-msgid "Не удалось отправить код. Попробуйте позже."
-msgstr ""
-
-#: accounts/views.py:78
+#: accounts/views.py:85
 msgid "Неверный email или пароль"
 msgstr ""
 
-#: accounts/views.py:111
-msgid "Неверный или истёкший код"
+#: accounts/views.py:125
+msgid "Неверный код."
 msgstr ""
 
-#: accounts/views.py:141
+#: accounts/views.py:155
 msgid "Сессия истекла"
 msgstr ""
 
-#: accounts/views.py:145
+#: accounts/views.py:159
 msgid "Пользователь не найден"
 msgstr ""
 
-#: accounts/views.py:150
-msgid "Не удалось отправить код"
-msgstr ""
-
-#: mirror/templates/mirror/index.html:271
+#: mirror/templates/mirror/index.html:299
 msgid "Выйти"
 msgstr ""
 
-#: mirror/templates/mirror/index.html:279
+#: mirror/templates/mirror/index.html:308
 msgid "Запрашиваем разрешения"
 msgstr ""
 
-#: mirror/templates/mirror/index.html:304
+#: mirror/templates/mirror/index.html:333
 msgid "Снимок"
 msgstr ""
 
-#: mirror/templates/mirror/index.html:305
+#: mirror/templates/mirror/index.html:334
 msgid "Кружок"
 msgstr ""
 
-#: mirror/templates/mirror/index.html:307
+#: mirror/templates/mirror/index.html:336
 msgid "Запись"
 msgstr ""
 
-#: mirror/templates/mirror/index.html:309
+#: mirror/templates/mirror/index.html:338
 msgid "Стоп"
 msgstr ""

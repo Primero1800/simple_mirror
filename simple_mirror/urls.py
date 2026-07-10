@@ -8,11 +8,11 @@ def _favicon(_request: object) -> HttpResponse:
 
 
 urlpatterns = [
-    path('favicon.ico', _favicon),
-    path('i18n/', include('django.conf.urls.i18n')),
+    path("favicon.ico", _favicon),
+    path("i18n/", include("django.conf.urls.i18n")),
 ]
 
 urlpatterns += i18n_patterns(
-    path('accounts/', include('accounts.urls')),
-    path('', include('mirror.urls')),
+    path("accounts/", include("accounts.urls")),
+    path("", include("mirror.urls")),
 )

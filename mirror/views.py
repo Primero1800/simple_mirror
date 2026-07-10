@@ -11,4 +11,4 @@ def index(request: HttpRequest) -> HttpResponse:
     Returns:
         Rendered mirror index page.
     """
-    return render(request, 'mirror/index.html')
+    return render(request, "mirror/index.html")

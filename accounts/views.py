@@ -9,7 +9,14 @@ from django.shortcuts import redirect, render
 from django.utils.translation import get_language, activate, gettext_lazy as _
 from django.views.decorators.http import require_POST
 
-from accounts.exceptions import EmailDeliveryError, OTPBlockedError, OTPCooldownError, UserAlreadyExistsError
+from accounts.exceptions import (
+    EmailDeliveryError,
+    LoginBlockedError,
+    OTPBlockedError,
+    OTPCooldownError,
+    OTPExpiredError,
+    UserAlreadyExistsError,
+)
 from accounts.forms import LoginForm, RegisterForm
 from accounts.services.auth_service import AuthService
 
@@ -28,22 +35,22 @@ def register(request: HttpRequest) -> HttpResponse:
         Rendered form page or redirect to verify.
     """
     form = RegisterForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
+    if request.method == "POST" and form.is_valid():
         try:
             user = AuthService.register(
-                email=form.cleaned_data['email'],
-                password=form.cleaned_data['password'],
+                email=form.cleaned_data["email"],
+                password=form.cleaned_data["password"],
             )
         except UserAlreadyExistsError as exc:
-            form.add_error('email', str(exc))
+            form.add_error("email", str(exc))
         except EmailDeliveryError as exc:
             form.add_error(None, str(exc))
         else:
-            request.session['pending_user_id'] = user.pk
-            request.session['otp_purpose'] = 'register'
-            return redirect('accounts:verify')
+            request.session["pending_user_id"] = user.pk
+            request.session["otp_purpose"] = "register"
+            return redirect("accounts:verify")
 
-    return render(request, 'accounts/register.html', {'form': form})
+    return render(request, "accounts/register.html", {"form": form})
 
 
 def login_view(request: HttpRequest) -> HttpResponse:
@@ -59,30 +66,34 @@ def login_view(request: HttpRequest) -> HttpResponse:
         Rendered login page or redirect to verify.
     """
     error: str | None = None
-    if request.method == 'POST':
+    if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
-            user = AuthService.authenticate(
-                email=form.cleaned_data['email'],
-                password=form.cleaned_data['password'],
-            )
-            if user:
-                try:
-                    AuthService.send_otp(user)
-                except OTPCooldownError as exc:
-                    error = str(exc)
-                except EmailDeliveryError as exc:
-                    error = str(exc)
-                else:
-                    request.session['pending_user_id'] = user.pk
-                    request.session['otp_purpose'] = 'login'
-                    return redirect('accounts:verify')
+            try:
+                user = AuthService.authenticate(
+                    email=form.cleaned_data["email"],
+                    password=form.cleaned_data["password"],
+                )
+            except LoginBlockedError as exc:
+                error = str(exc)
             else:
-                error = str(_('Неверный email или пароль'))
+                if user:
+                    try:
+                        AuthService.send_otp(user)
+                    except OTPCooldownError as exc:
+                        error = str(exc)
+                    except EmailDeliveryError as exc:
+                        error = str(exc)
+                    else:
+                        request.session["pending_user_id"] = user.pk
+                        request.session["otp_purpose"] = "login"
+                        return redirect("accounts:verify")
+                else:
+                    error = str(_("Неверный email или пароль"))
     else:
         form = LoginForm()
 
-    return render(request, 'accounts/login.html', {'form': form, 'error': error})
+    return render(request, "accounts/login.html", {"form": form, "error": error})
 
 
 def verify_otp(request: HttpRequest) -> HttpResponse:
@@ -95,42 +106,50 @@ def verify_otp(request: HttpRequest) -> HttpResponse:
         Rendered verify page or redirect to the mirror index after success.
     """
     # 1. Resolve the pending user from session; redirect if session is missing or stale
-    user_id = request.session.get('pending_user_id')
+    user_id = request.session.get("pending_user_id")
     if not user_id:
-        return redirect('accounts:login')
+        return redirect("accounts:login")
 
     user = AuthService.get_user_by_id(user_id)
     if not user:
-        return redirect('accounts:login')
+        return redirect("accounts:login")
 
     # 2. Calculate seconds remaining so the template can show a countdown
     seconds_remaining = AuthService.get_seconds_remaining(user)
     error: str | None = None
 
-    if request.method == 'POST':
+    if request.method == "POST":
         # 3. Validate the submitted code against the stored OTP record
-        code: str = request.POST.get('code', '')
+        code: str = request.POST.get("code", "")
         try:
             verified = AuthService.verify_otp(user, code)
         except OTPBlockedError as exc:
             error = str(exc)
+        except OTPExpiredError as exc:
+            error = str(exc)
         else:
             if not verified:
-                error = str(_('Неверный или истёкший код'))
+                error = str(_("Неверный код."))
             else:
                 # 4. Activate account on first registration, then log the user in
-                purpose = request.session.pop('otp_purpose', 'login')
-                request.session.pop('pending_user_id', None)
-                if purpose == 'register':
+                purpose = request.session.pop("otp_purpose", "login")
+                request.session.pop("pending_user_id", None)
+                if purpose == "register":
                     AuthService.activate(user)
-                login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-                return redirect('mirror:index')
+                login(
+                    request, user, backend="django.contrib.auth.backends.ModelBackend"
+                )
+                return redirect("mirror:index")
 
-    return render(request, 'accounts/verify.html', {
-        'email': user.email,
-        'seconds_remaining': seconds_remaining,
-        'error': error,
-    })
+    return render(
+        request,
+        "accounts/verify.html",
+        {
+            "email": user.email,
+            "seconds_remaining": seconds_remaining,
+            "error": error,
+        },
+    )
 
 
 @require_POST
@@ -144,23 +163,25 @@ def resend_otp(request: HttpRequest) -> JsonResponse:
         JSON with ``ok: true`` and remaining seconds on success, or
         ``ok: false`` with an error message on failure.
     """
-    user_id = request.session.get('pending_user_id')
+    user_id = request.session.get("pending_user_id")
     if not user_id:
-        return JsonResponse({'ok': False, 'error': str(_('Сессия истекла'))})
+        return JsonResponse({"ok": False, "error": str(_("Сессия истекла"))})
 
     user = AuthService.get_user_by_id(user_id)
     if not user:
-        return JsonResponse({'ok': False, 'error': str(_('Пользователь не найден'))})
+        return JsonResponse({"ok": False, "error": str(_("Пользователь не найден"))})
 
     try:
         AuthService.send_otp(user)
     except OTPCooldownError as exc:
-        return JsonResponse({'ok': False, 'error': str(exc), 'seconds_remaining': exc.seconds_remaining})
+        return JsonResponse(
+            {"ok": False, "error": str(exc), "seconds_remaining": exc.seconds_remaining}
+        )
     except EmailDeliveryError as exc:
-        return JsonResponse({'ok': False, 'error': str(exc)})
+        return JsonResponse({"ok": False, "error": str(exc)})
 
     lifetime: int = settings.OTP_LIFETIME_SECONDS
-    return JsonResponse({'ok': True, 'seconds': lifetime})
+    return JsonResponse({"ok": True, "seconds": lifetime})
 
 
 def logout_view(request: HttpRequest) -> HttpResponse:
@@ -173,7 +194,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
         Redirect to the login page.
     """
     logout(request)
-    return redirect('accounts:login')
+    return redirect("accounts:login")
 
 
 class AsyncPasswordResetView(DjangoPasswordResetView):
@@ -191,17 +212,17 @@ class AsyncPasswordResetView(DjangoPasswordResetView):
         """
         # 1. Collect the options Django's PasswordResetForm.save needs
         opts = {
-            'use_https': self.request.is_secure(),
-            'token_generator': self.token_generator,
-            'from_email': self.from_email,
-            'email_template_name': self.email_template_name,
-            'subject_template_name': self.subject_template_name,
-            'request': self.request,
-            'html_email_template_name': self.html_email_template_name,
-            'extra_email_context': self.extra_email_context,
+            "use_https": self.request.is_secure(),
+            "token_generator": self.token_generator,
+            "from_email": self.from_email,
+            "email_template_name": self.email_template_name,
+            "subject_template_name": self.subject_template_name,
+            "request": self.request,
+            "html_email_template_name": self.html_email_template_name,
+            "extra_email_context": self.extra_email_context,
         }
         # 2. Capture the active language so the worker thread renders the same locale
-        lang = get_language() or 'ru'
+        lang = get_language() or "ru"
 
         # 3. Send the email off the request thread
         def _run() -> None:

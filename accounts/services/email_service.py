@@ -53,12 +53,12 @@ class EmailService:
         retry_delay: float = settings.EMAIL_RETRY_DELAY
         lifetime: int = settings.OTP_LIFETIME_SECONDS
 
-        subject = _('Mirror — код подтверждения')
+        subject = _("Mirror — код подтверждения")
         message = _(
-            'Ваш код подтверждения: %(code)s\n\n'
-            'Код действителен %(lifetime)s секунд.\n\n'
-            'Если вы не запрашивали код — просто проигнорируйте это письмо.'
-        ) % {'code': code, 'lifetime': lifetime}
+            "Ваш код подтверждения: %(code)s\n\n"
+            "Код действителен %(lifetime)s секунд.\n\n"
+            "Если вы не запрашивали код — просто проигнорируйте это письмо."
+        ) % {"code": code, "lifetime": lifetime}
 
         last_exc: Exception | None = None
         for attempt in range(max_retries):
@@ -74,15 +74,20 @@ class EmailService:
             except Exception as exc:
                 last_exc = exc
                 logger.warning(
-                    'OTP email to %s failed (attempt %d/%d): %s',
-                    email, attempt + 1, max_retries, exc,
+                    "OTP email to %s failed (attempt %d/%d): %s",
+                    email,
+                    attempt + 1,
+                    max_retries,
+                    exc,
                 )
                 if attempt < max_retries - 1:
-                    time.sleep(retry_delay * (2 ** attempt))
+                    time.sleep(retry_delay * (2**attempt))
 
-        logger.error('Failed to send OTP email to %s after %d attempts', email, max_retries)
+        logger.error(
+            "Failed to send OTP email to %s after %d attempts", email, max_retries
+        )
         raise EmailDeliveryError(
-            _('Не удалось отправить код. Попробуйте позже.')
+            _("Не удалось отправить код. Попробуйте позже.")
         ) from last_exc
 
     @staticmethod
@@ -98,7 +103,7 @@ class EmailService:
         """
         from django.utils.translation import get_language, activate
 
-        lang = get_language() or 'ru'
+        lang = get_language() or "ru"
 
         def _run() -> None:
             activate(lang)
