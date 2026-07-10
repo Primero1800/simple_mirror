@@ -1,9 +1,11 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 
 from django.conf import settings
 from django.db import OperationalError, connection, transaction
 
-from healthcheck.exceptions import DBHealthCheckError, QdrantHealthCheckError
+from healthcheck.exceptions import DBHealthCheckError, HealthCheckError, QdrantHealthCheckError
 from simple_mirror.infrastructure.qdrant_client import get_qdrant_client
 
 logger = logging.getLogger(__name__)
@@ -12,6 +14,32 @@ _RETRIES = 3
 
 
 class HealthCheckService:
+    @staticmethod
+    def check() -> None:
+        """Run all infrastructure checks in parallel.
+
+        Raises:
+            HealthCheckError: if any component is unhealthy or times out.
+        """
+        timeout = settings.HEALTH_CHECK_TIMEOUT_SEC
+        errors: list[str] = []
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = {
+                "db": executor.submit(HealthCheckService.check_db),
+                "qdrant": executor.submit(HealthCheckService.check_qdrant),
+            }
+            for key, future in futures.items():
+                try:
+                    future.result(timeout=timeout)
+                except FutureTimeout:
+                    errors.append(f"{key}: timeout")
+                except (DBHealthCheckError, QdrantHealthCheckError) as exc:
+                    errors.append(f"{key}: {exc}")
+
+        if errors:
+            raise HealthCheckError("; ".join(errors))
+
     @staticmethod
     def check_db() -> None:
         """Check database connectivity with timeout and retries.

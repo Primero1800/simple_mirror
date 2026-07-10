@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from healthcheck.exceptions import DBHealthCheckError, QdrantHealthCheckError
+from healthcheck.exceptions import HealthCheckError
 from healthcheck.services.health_check_service import HealthCheckService
 
 
@@ -25,26 +25,10 @@ class HealthViewSet(viewsets.ViewSet):
             request: DRF request.
 
         Returns:
-            Response with component statuses.
+            Response with status and error detail if unhealthy.
         """
-        checks: dict[str, str] = {}
-        ok = True
-
         try:
-            HealthCheckService.check_db()
-            checks["db"] = "ok"
-        except DBHealthCheckError as exc:
-            checks["db"] = str(exc)
-            ok = False
-
-        try:
-            HealthCheckService.check_qdrant()
-            checks["qdrant"] = "ok"
-        except QdrantHealthCheckError as exc:
-            checks["qdrant"] = str(exc)
-            ok = False
-
-        return Response(
-            {"status": "ok" if ok else "error", **checks},
-            status=200 if ok else 503,
-        )
+            HealthCheckService.check()
+            return Response({"status": "ok"}, status=200)
+        except HealthCheckError as exc:
+            return Response({"status": "error", "detail": str(exc)}, status=503)

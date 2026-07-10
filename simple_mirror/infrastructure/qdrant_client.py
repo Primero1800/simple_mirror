@@ -9,6 +9,11 @@ _client: QdrantClient | None = None
 
 
 def get_qdrant_client() -> QdrantClient:
+    """Return the shared Qdrant client, creating it lazily on first use.
+
+    Returns:
+        Cached QdrantClient instance, configured from settings.
+    """
     global _client
     if _client is None:
         _client = QdrantClient(
