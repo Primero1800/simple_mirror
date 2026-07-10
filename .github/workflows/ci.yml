@@ -27,6 +27,7 @@ jobs:
       EMAIL_HOST_PASSWORD: ''
       REDIS_HOST: 'localhost'
       REDIS_PORT: '6379'
+      HEALTH_CHECK_TIMEOUT_SEC: '5'
 
     steps:
       - uses: actions/checkout@v4
@@ -43,13 +44,13 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Ruff linting
-        run: poetry run ruff check accounts mirror simple_mirror tests
+        run: poetry run ruff check accounts mirror simple_mirror healthcheck tests
 
       - name: Ruff formatting
-        run: poetry run ruff format --check accounts mirror simple_mirror tests
+        run: poetry run ruff format --check accounts mirror simple_mirror healthcheck tests
 
       - name: Check types with mypy
-        run: poetry run mypy accounts mirror simple_mirror
+        run: poetry run mypy accounts mirror simple_mirror healthcheck
 
       - name: Run tests
-        run: poetry run pytest --cov-report=term-missing:skip-covered --cov=accounts --cov=mirror --cov=simple_mirror tests/
+        run: poetry run pytest --cov-report=term-missing:skip-covered --cov=accounts --cov=mirror --cov=simple_mirror --cov=healthcheck tests/
